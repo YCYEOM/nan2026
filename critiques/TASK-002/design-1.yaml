@@ -1,0 +1,166 @@
+critic: design
+task_id: TASK-002
+iteration: 1
+no_issues_found: false
+
+# 독립성 한계: 이 critic 은 구현을 수행한 것과 같은 컨텍스트에서 실행됐다.
+# prompt-library/critics/design.md 는 "구현 에이전트와 분리된 컨텍스트"를 요구한다.
+# 자기 코드를 자기가 비판한 결과이므로 놓친 것이 있다고 보는 편이 맞다.
+# 대비값은 WCAG 2.1 상대휘도 공식으로 실측했다(추정 아님).
+
+findings:
+  - severity: high
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/scenes/menu.ts
+      location: "line 51 — ctx.strokeStyle = hover ? C.player[0] : C.line"
+    description: >-
+      메뉴 행 hover 테두리에 P1 플레이어 색(C.player[0])을 쓴다. DESIGN.md 원칙 1은
+      "플레이어 색은 절대 재사용하지 않는다. 그 사람을 가리킬 때만 쓴다"이고,
+      Do not 항목에도 "플레이어 색을 상태·장식에 쓰지 않는다"가 있다. hover 는 상태다.
+    impact: >-
+      DESIGN.md 를 만든 같은 작업에서 그 문서의 1번 원칙을 위반했다. 규칙이 코드에
+      적용되지 않았다는 뜻이라, 문서의 나머지 원칙도 같은 수준으로 의심해야 한다.
+      기능적으로는 메뉴에서 P1 색이 "P1 것"이 아닌 곳에 처음 등장하는 사례다.
+    verification: >-
+      grep -n "C.player" src/scenes/menu.ts — 플레이어를 가리키지 않는 유일한 사용처다.
+    suggested_fix: >-
+      hover 테두리 전용 토큰을 DESIGN.md 색 역할표에 추가하고(C.focus 등) 그 값을 쓴다.
+      또는 hover 를 테두리 색이 아니라 이미 쓰고 있는 C.surfaceHi 배경 변화만으로 표현한다.
+
+  - severity: medium
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/scenes/rhythm.ts
+      location: "line 101 (HUD 정확도), line 299 (종료 화면 정확도)"
+    description: >-
+      팀 정확도를 모수 없이 백분율로만 표시한다(`정확도 92%`, `정확도 92.0%`).
+      DESIGN.md 원칙 4는 "숫자 옆에는 항상 모수를 적는다. 92% 가 아니라 92%(18노트)"이며,
+      Do 항목에도 "비율을 보여줄 때 모수를 함께 적는다"가 있다.
+    impact: >-
+      개인 적중률에는 모수를 붙였는데(P1 92%(18노트)) 팀 정확도에는 빠졌다.
+      같은 화면에서 규칙이 일관되지 않는다. 스테이지 진행 판정이 이 값 90% 기준이라
+      플레이어가 "몇 개 중 몇 개인지"를 알 수 없으면 남은 여유를 계산할 수 없다.
+    verification: >-
+      팀전 실행 → HUD 와 종료 화면의 정확도 표기에 분모가 없는지 확인.
+      e.accuracy() 는 accScore/nextBeat 이므로 모수는 e.nextBeat 다.
+    suggested_fix: >-
+      `정확도 92%(29/32)` 형태로 e.nextBeat 와 총 비트 수를 병기한다.
+
+  - severity: medium
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/scenes/power.ts
+      location: "lines 112, 122, 143, 185, 207 · src/scenes/rhythm.ts lines 160, 292"
+    description: >-
+      rgb()/rgba() 리터럴 7곳이 토큰을 우회한다. `rgba(231,76,60,...)`(=C.danger 의 RGB),
+      `rgba(230,126,34,0.35)`(=C.warn 의 RGB), `rgba(200,50,40,...)` 등 토큰과 같은 색을
+      숫자로 다시 적어둔 것들이다. `bass design check` 의 token-consistency 는 hex 만
+      검사하므로 PASS 가 났다.
+    impact: >-
+      토큰을 바꿔도 이 7곳은 따라오지 않는다. C.danger 를 조정하면 과부하 테두리와
+      정전 플래시만 옛 색으로 남아 화면 안에서 빨강이 두 종류가 된다.
+      "리터럴 잔존 0건"이라는 TASK-002 검증 결과도 실제보다 낙관적이었다.
+    verification: >-
+      grep -rn "rgba\?(" src/scenes/ — 7건. 이 중 알파만 필요한 곳은 토큰 색 + globalAlpha
+      로 대체 가능하다.
+    suggested_fix: >-
+      tokens.ts 에 `withAlpha(hex, a)` 헬퍼를 두고 rgba 리터럴을 `withAlpha(C.danger, pulse)`
+      로 바꾼다. 오버레이용 `rgba(0,0,0,0.8)` 은 C.scrim 토큰으로 승격한다.
+      design check 가 못 잡는 형식이므로 DESIGN.md Do not 에 "rgb()/rgba() 리터럴 금지"를 명시한다.
+
+  - severity: medium
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/ui/tokens.ts
+      location: "C.player[2] = '#2ecc71' · C.success = '#2ecc71'"
+    description: >-
+      P3 색과 성공 색이 완전히 같은 값이다. DESIGN.md 색 역할표에 PROPOSED 로 기록은
+      돼 있으나 값은 그대로 두었다.
+    impact: >-
+      현재 PLAYERS=2 라 드러나지 않지만, GAME_SPEC 이 "3·4인 확장 예정"이라고 명시한다.
+      3인으로 늘리는 순간 P3 노트와 성공 표시가 같은 색이 되어 원칙 1·2가 동시에 깨진다.
+      확장 시점에 발견하면 이미 P3 색으로 그려진 모든 요소를 다시 봐야 한다.
+    verification: >-
+      src/scenes/rhythm.ts 의 PLAYERS 를 3으로 바꾸고 실행 → P3 노트와 클리어 문구 색 비교.
+    suggested_fix: >-
+      지금 P3 를 성공 초록과 구분되는 값으로 바꾼다. 확장 전에 바꾸는 편이 비용이 낮다.
+
+  - severity: low
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/ui/tokens.ts
+      location: "C.danger '#e74c3c' (bg 대비 4.65, slot 대비 3.45) · C.textFaint '#667' (bg 3.16)"
+    description: >-
+      실측 대비값(WCAG 2.1): C.danger 는 C.bg 위에서 4.65 로 작은 텍스트 AA(4.5) 를 겨우
+      넘지만 C.slot(#2a3040) 위에서는 3.45 로 미달한다. C.textFaint 는 C.bg 위 3.16 으로
+      작은 텍스트 AA 미달이다(DESIGN.md 에 PROPOSED 로 인정됨).
+    impact: >-
+      C.danger 는 F.xs(12px) 로도 쓰인다(power.ts 정전 이력). 배경이 C.slot 인 요소 위에
+      danger 텍스트를 올리면 읽기 어렵다. 시연 환경 조명에서 더 나빠진다.
+    verification: >-
+      상대휘도 공식으로 계산. text #fff 17.76 / textMuted 7.35 / accent 10.42 /
+      success 8.45 / warn 6.24 / danger 4.65 / textFaint 3.16 (모두 C.bg 기준).
+    suggested_fix: >-
+      C.danger 를 밝게 조정하거나(예 #ff6b5c 계열은 대비가 더 높다), 작은 텍스트에는
+      danger 를 쓰지 않는 규칙을 DESIGN.md 에 명시한다. 실측값을 DESIGN.md 접근성 절에 적어둔다.
+
+  - severity: low
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/scenes/power.ts
+      location: "line 142 (수요 미터 트랙) · line 186 (과부하 카운트다운 트랙)"
+    description: >-
+      토큰화 과정에서 서로 다른 의미의 두 배경을 같은 C.surface 로 합쳤다. 142 는 원래
+      중립 회색(#222), 186 은 붉은 계열(#3a1a1a)로 "위험 트랙"임을 색으로 암시했다.
+      지금은 둘 다 푸른 회색(#1c2230)이다.
+    impact: >-
+      과부하 카운트다운 막대의 빈 부분이 위험 맥락임을 잃었다. 채움색(C.danger)만으로
+      구분되므로 t 가 작을 때 위험 신호가 약해진다. DESIGN.md 원칙 2("상태는 색 하나로만
+      구분하지 않는다")와 반대 방향의 변경이다.
+    verification: >-
+      전력망 실행 → 용량 초과 유도 → 화면 하단 카운트다운 막대의 트랙 색 확인.
+    suggested_fix: >-
+      위험 맥락 트랙용 토큰(C.dangerTrack)을 역할표에 추가하고 186 에 적용한다.
+      또는 트랙을 없애고 채움만 남겨 색 의존을 줄인다.
+
+  - severity: note
+    confidence: likely
+    category: design
+    evidence:
+      file: src/ui/tokens.ts
+      location: "C.player — P1 #5aa0ff · P4 #e056fd"
+    description: >-
+      P1 과 P4 의 상호 대비가 1.14 로 거의 같은 밝기다. 색상(파랑/보라)만 다르다.
+    impact: >-
+      4인 확장 시 두 사람의 노트를 밝기로 구분할 수 없다. 색각 이상(3형)에서는
+      파랑과 보라의 구분이 특히 약하다. DESIGN.md 원칙 2에 걸린다.
+    verification: >-
+      PLAYERS=4 로 바꿔 실행하고 P1·P4 노트를 나란히 확인. 색각 시뮬레이터 병행.
+    suggested_fix: >-
+      4인 확장 시 P4 를 밝기가 다른 값으로 바꾸거나, 노트에 이미 있는 "P1/P2" 텍스트를
+      모든 노트 종류에 일관되게 노출한다(현재 연타 노트는 횟수만 표시하고 담당 번호가 없다).
+
+  - severity: note
+    confidence: confirmed
+    category: design
+    evidence:
+      file: DESIGN.md
+      location: "Interaction states 절 — focus / Motion 절 — prefers-reduced-motion"
+    description: >-
+      메뉴 키보드 focus 표시 없음과 prefers-reduced-motion 미대응이 MISSING 으로만
+      기록돼 있고 해소되지 않았다.
+    impact: >-
+      메뉴는 마우스와 숫자키를 모두 받는데 키보드로는 현재 항목을 알 수 없다.
+      화면 흔들림(미스 시 8px)은 전정 감각 민감자에게 문제가 될 수 있다.
+    verification: >-
+      메뉴에서 마우스를 치우고 키보드만으로 조작 시도. 미스를 연속으로 내 흔들림 확인.
+    suggested_fix: >-
+      메뉴에 선택 인덱스 상태를 두고 방향키 이동 + 현재 항목 테두리 강조.
+      흔들림·파티클을 하나의 상수로 묶고 prefers-reduced-motion 이면 0 으로 만든다.

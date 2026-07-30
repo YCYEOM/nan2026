@@ -1,0 +1,25 @@
+{
+  "edition": "nan2026",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "7216b26959f7fc82eb68834b194ba5ec6ef1c3281821cfd2489b8f9be4ae593a"
+    },
+    {
+      "path": ".cursor/rules/bass.mdc",
+      "sha256": "52e1f99ff9d5adc5d35e96d60be1f29c3a69829b4105f8474c030cd8c3cc5db7"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "06ab51206cd00da68a388f1e95c5777e7fdcdde11bfd38f4840b23ff9c8bcbd0"
+    },
+    {
+      "path": "nan/gates.yaml",
+      "sha256": "c8ddbeafcd8091fbc82f42400190d71e58b8629d6024f28d720716449e749b32"
+    },
+    {
+      "path": "nan/acceptance.yaml",
+      "sha256": "15774b0627b1423b789328b25d3234ee29fe76ce871f23cbf7d63c3349bf097c"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "task_id": "TASK-006",
+  "summary_of_changes": "노트에 `swap` 필드를 더해 반전 노트를 만들었다. 반전이면 표시 색만 상대 색이 되고, 눌러야 하는 사람(`ownerOf`)은 그대로다. 엔진에 `swapOf(k)`·`shownOwnerOf(k)` 접근자와 `swapChance` 옵션을 추가했고, 판정 경로(`press`·`release`·`applyHit`·`missAt`·`tally`·`winner`)는 한 줄도 바뀌지 않았다. 씬은 노트 채움·테두리·글로우·홀드 꼬리 색을 `COLORS[shown]` 으로 바꾸고, 반전 노트에 `🔀P{담당}` 을 적고, 차례 안내에 `🔀 반전! P1 색 노트 → P2 가 [J]` 분기를 넣었다. `optsForStage` 에서 스테이지 2부터 `swapChance` 15% → 스테이지당 +7% → 상한 35%. 리드인 첫 노트 안내에도 반전 표기를 넣었다. 플레이테스트 후 반전 표식을 노트 안 `🔀P2` 글자에서 담당 색 점선 링(rad+9, 파선 5/4)으로 옮겼다 — 12px 이모지가 뭉개져 가시성이 나빴다.",
+  "why": "사용자가 제시한 세 후보(보이다 안 보이는 노트 / 마우스 / 색·키 반전) 중 반전을 골랐다. 목적이 난이도가 아니라 '같이 플레이하면서 쇼츠각이 나오는 것'이라서다. 현재 게임에서 두 사람이 같은 순간에 서로를 의식하는 지점은 협동 홀드 브레이크 하나뿐이고, 개인전은 `buildChart` 가 solo 면 동시류를 만들지 않아 상호작용이 0이었다. 반전은 개인전에도 붙어 그 구멍을 처음 낸다. 클립이 되는 조건은 (1) 동시에 서로를 의식 (2) 실패 원인이 사람으로 특정 (3) 소리가 남 — 반전은 셋을 다 만든다.",
+  "files_changed": [
+    "src/systems/rhythm.ts",
+    "src/scenes/rhythm.ts",
+    "src/rhythm.test.ts",
+    "DESIGN.md",
+    "docs/GAME_SPEC.md",
+    "docs/DECISIONS.md",
+    "tasks/TASK-006.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "fast-reliable",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (43 tests, 신규 2개 — 판정 엔진 무변경 확인)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "grep hex/rgb/rgba/폰트 리터럴 잔존 0건 (src/scenes/)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "플레이테스트 — 반전 판정이 의도대로 동작함을 사용자가 확인",
+        "level": 3,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "반전 비율(15% → +7% → 상한 35%)이 적절한지 — 사람이 플레이하지 않았다. 너무 낮으면 안 나오고 너무 높으면 색 체계 자체가 무의미해진다.",
+      "색이 거짓말하는 것이 '속았다'가 아니라 '부당하다'로 느껴지는지. 정직 신호 세 개(판정선·담당 색 점선 링·차례 안내)로 충분한지는 사람 판단이다.",
+      "반전이 실제로 소리를 나게 하는지 — 이 작업의 목적이 난이도가 아니라 쇼츠각인데, 그건 2인 플레이로만 확인된다. 현재 1인 확인조차 하지 않았다.",
+      "차례 안내 문장이 길어졌다(`🔀 반전! P1 색 노트 → P2 가 [J]`). 640px 폭에서 넘치는지 보지 않았다.",
+      "점선 링(rad+9)이 웨이브 노트 최대 진폭(±26)에서 레인 경계(y 200~290)를 넘어 그려진다. 기존 노트(rad 22)도 이미 넘으므로 새 문제는 아니지만 링이 더 커졌다 — 눈으로 보지 않았다.",
+      "연타 노트의 C.accentHi 솔리드 링(rad+5, 두께 4)과 점선 링(rad+9)이 겹쳐 보이는지. 계산상 rad+7 과 rad+7.5 로 간신히 비껴간다."
+    ]
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0
+  },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다. `critic_findings` 의 0 은 '문제 없음'이 아니라 '미실행'이다. critiques/TASK-002/design-2.yaml 의 low/note 5건도 그대로 열려 있다.",
+    "2인 전용이다. `shownOwnerOf` 가 `(owner + 1) % players` 라 3인 이상에서는 '상대'가 하나로 정해지지 않는데, 그 문제를 풀지 않고 가정으로 남겼다(pre-task 게이트가 open-assumptions 로 경고했다).",
+    "`swapChance` 가 0이 아니면 `buildChart` 의 rnd() 소비가 늘어 같은 seed 라도 차트가 달라진다. sc=0 에서만 기존 차트가 재현된다 — 기존 시드 테스트가 보존되는 이유는 그 단축평가 덕분이다. 구현 중 이걸 잘못 이해해 테스트 하나를 틀리게 썼고, 실패를 보고서야 고쳤다.",
+    "반전이 색 의미를 하나 더 얹었다. design-2.yaml 의 `C.sigEnd === C.player[0]` note(사이언이 두 의미로 쓰인다)와 같은 방향의 부담이 커졌다.",
+    "렌더링 계층이라 자동 테스트가 없다. 43개 테스트는 엔진이 안 바뀌었음과 반전 판정이 담당 기준임을 증명할 뿐, 화면이 맞는지는 증명하지 않는다.",
+    "반전 표식을 12px 이모지 한 글자에 걸었다가 플레이테스트에서 되돌렸다. DESIGN.md 원칙 2(색 하나로만 구분하지 않는다)가 이미 답을 갖고 있었는데 구현 때 텍스트 채널 하나에만 의존했다."
+  ],
+  "out_of_scope_findings": [
+    "협동 홀드가 깨질 때 범인을 화면에 표시하지 않는다. `scenes/rhythm.ts` 의 `fb.player` 에 이미 귀책자가 들어와 있는데 팝업은 `MISS` 만 띄운다 — 지금 게임에서 가장 강한 쇼츠각이 데이터로만 있고 화면에 없다. 별개 작업으로 남았고 비용이 매우 낮다.",
+    "네트워크 전환 시 `scenes/rhythm.ts` 가 '한 화면에 두 플레이어'를 하드코딩하고 있다(HUD 양쪽 표기, 하단 키 힌트 2개, 판정선이 차례를 말함). 클라이언트 1개 = 플레이어 1인 시점으로 쪼개는 리팩터가 마우스·정보 비대칭 기믹의 선행 조건이다.",
+    "prefers-reduced-motion 미대응. TASK-005 에서 이월 중이며 이번에 변경 없음.",
+    "메뉴 키보드 focus 표시 없음. design-2.yaml note 로 계속 열려 있다.",
+    "차트 담당 불균등 배분, 팀전 개인 적중률 미노출 — TASK-002 에서 계속 이월 중."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "DESIGN.md",
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "담당 판정이 `ownerOf` 한 곳으로 모여 있어서 '표시만 반전'이 가능했다. 비교가 두 곳(press의 tap·mash)뿐이고 둘 다 같은 접근자를 쓰니 렌더링만 바꿔 기믹이 성립했다. 판정 기준을 접근자 하나로 모아두면 나중에 표시와 책임을 분리할 수 있다.",
+      "시드 RNG에 새 draw 를 넣으면 그 뒤 전부가 밀린다. 기본값에서 draw 를 소비하지 않도록 단축평가로 막으면 기존 차트가 보존된다 — 반대로 옵션을 켠 차트와 끈 차트를 같다고 가정하면 안 된다(그 가정으로 테스트를 틀리게 썼다).",
+      "기믹을 고를 때 '재미있는가'보다 '왜 지금 만들 수 있는가'가 먼저였다. 마우스가 가치는 더 높았지만 각자 마우스·각자 화면이 전제라서 지금 만들면 2인 검증이 불가능했다. 검증할 수 없는 기능은 만들 시점이 아니다.",
+      "캔버스에서 이모지는 큰 글씨에서만 쓴다. 12px 이모지는 뭉개지고, 작은 원 안에서는 폭까지 잡아먹는다. 작은 요소의 구분은 글자가 아니라 모양(파선·겹수·굵기)으로 준다 — 색각 이상과 시연 화면 양쪽에서 같이 읽힌다."
+    ]
+  },
+  "rollback": {
+    "method": "src/systems/rhythm.ts 에서 `swap` 필드·`swapOf`·`shownOwnerOf`·`swapChance` 를 제거하고 `chart.push` 를 원래 4필드로 되돌린다. src/scenes/rhythm.ts 에서 `swap`/`shown` 선언과 점선 링 블록(`if (swap)`)을 지우고 `COLORS[shown]` 4곳을 `COLORS[owner]` 로 환원한다. 차례 안내의 `e.swapOf(nb)` 분기와 리드인 반전 표기, `optsForStage` 의 `swapChance` 한 줄을 지운다. src/rhythm.test.ts 의 신규 2건을 삭제한다. 문서는 DESIGN.md 예외 절, GAME_SPEC 반전 노트 절, DECISIONS 07-30 3행을 제거한다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": true,
+    "environment": "vite dev server :5173 (2026-07-30). 사람이 화면을 직접 확인함 — 두 차례(초기 이모지 표식, 수정 후 점선 링)",
+    "notes": "반전 판정과 점선 링 표식 모두 사용자가 실행 화면을 보고 확인했다. 초기 구현의 이모지 표식은 같은 확인에서 가시성 문제로 반려돼 점선 링으로 고쳤고, 고친 화면도 확인받았다. 다만 이 확인은 레인 도입 전(단일 레인) 화면에 대한 것이다 — 레인 6줄 위의 반전 건너오기는 TASK-007 의 미검증 항목이다."
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-30T05:05:49Z",
+    "notes": "승인. 반전 판정 동작을 플레이로 확인했고('반대로 눌러야 하는 건 잘 구현된 것 같다'), 표식 가시성 지적 후 점선 링으로 고친 화면도 확인해 '의도한대로 잘 구현된 것 같다'로 승인했다. 남은 not_verified(반전 비율, 부당함 체감, 2인 쇼츠각, 차례 안내 문장 폭, 점선 링 레인 경계)는 해소되지 않은 채로 남는다 — 승인이 검증을 대신하지 않는다. 이 기믹은 이후 레인 도입(TASK-007)으로 위치가 색을 눌러 무의미해지는 문제가 발견돼 TASK-007 에서 건너오기(laneAt)로 보강됐다. not_verified 중 점선 링 반지름(rad+9)·레인 경계(y 200~290)·차례 안내 문장을 언급한 항목은 TASK-007 의 기하 재배치(rad+6, 레인 6줄, 문장 축약)로 수치가 낡았다 — 그 시점의 기록으로 남기고, 현재 기하에 대한 미검증은 TASK-007 기록에 있다."
+  }
+}

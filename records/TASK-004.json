@@ -1,0 +1,132 @@
+{
+  "task_id": "TASK-004",
+  "summary_of_changes": "네온 시그니처(핑크 #FF2E97 → 사이언 #00E5FF, 보랏빛 흑 #0A0612)로 팔레트를 전면 교체하고 리듬 씬 렌더링을 개편했다. 판정선이 현재 담당 플레이어 색으로 빛나고, 노트는 속을 비운 네온 링이 됐다. 시그니처 그라데이션은 타이틀·레인 테두리·캔버스 외곽에만 쓴다. tokens.ts 에 withAlpha()·sigGradient()·glow() 헬퍼와 C.scrim 을 추가하고 warn 토큰을 제거했다. design critic 의 high 1·medium 3 을 코드에서 닫았다. DESIGN.md 에 Signature 절과 실측 대비표를 넣었다.",
+  "why": "사용자가 '디자인이 너무 구리고 시그니처 컬러도 없다'고 판단했다. 기존 팔레트는 리허설 중 코드에 박힌 값을 사후 정리한 것이라 정체성이 없었다. bass-platform 에 최신 트렌드 디자인 정의가 있는지 전수 확인했으나 없었다 — 빈 템플릿·critic 체크리스트·색 4개짜리 검증 픽스처뿐이라 방향은 여기서 새로 세워야 했다. 동시에 critiques/TASK-002/design-1.yaml 의 확인된 high/medium 4건이 열려 있어 bass critique stop 이 stop:false 였다.",
+  "files_changed": [
+    "src/ui/tokens.ts",
+    "src/scenes/rhythm.ts",
+    "src/scenes/menu.ts",
+    "src/scenes/power.ts",
+    "DESIGN.md",
+    "index.html",
+    "docs/GAME_SPEC.md",
+    "docs/DECISIONS.md",
+    "critiques/TASK-002/design-2.yaml",
+    "tasks/TASK-004.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "balanced",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (41 tests, 판정 로직 무변경 확인)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass doctor (design-md 포함 5/5)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan trace validate",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan concept gate CON-001 (88/100)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass critique validate design-2.yaml (findings=5)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass critique stop critiques/TASK-002 → stop:true",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "grep hex/rgb/rgba/폰트 리터럴 잔존 0건 (src/scenes/)",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "glow(shadowBlur)를 프레임마다 여러 번 켠다. 사용자가 플레이 중 프레임 문제를 보고하지 않았으나 계측하지는 않았다(design-2.yaml low 항목).",
+      "저사양 시연 장비에서의 프레임은 여전히 미확인이다. 확인한 것은 개발 장비 1대뿐이다."
+    ]
+  },
+  "critic_findings": {
+    "total": 8,
+    "open_high_or_medium": 0,
+    "report_path": "critiques/TASK-002/design-2.yaml"
+  },
+  "known_limitations": [
+    "critic 은 구현과 같은 컨텍스트에서 실행됐다. prompt-library/critics/design.md 는 분리된 컨텍스트를 요구한다 — 자기 코드를 자기가 비판한 결과다.",
+    "index.html 은 CSS라 토큰을 import 할 수 없어 시그니처 색을 rgba 로 복제했다. 씬 코드의 rgba 금지 규칙과 어긋나 보이지만 대안이 없어 주석으로 출처를 달았다(design-2.yaml note).",
+    "C.sigEnd 와 C.player[0] 이 같은 값이다. '그라데이션은 장식 전용' 규칙으로 원칙 1 위반을 피했을 뿐, 색 체계로 막은 것이 아니다.",
+    "C.textFaint 는 4.13 으로 여전히 작은 텍스트 AA 미달이다(3.16 에서 개선).",
+    "critic low/note 5건을 열어둔 채 닫는다."
+  ],
+  "out_of_scope_findings": [
+    "bass-platform 의 origin/main 에는 NAN 에디션이 없다. src/nan/ 전체가 빠져 있어 main 으로 옮기면 bass nan 명령군·trace·concept·protect·evidence 가 사라진다. 현재 쓰는 feat/nan2026-theme-to-prototype-harness 브랜치가 원격과 동기 상태이며 업데이트는 없다. 언젠가 main 머지 시점에 재설치 절차가 필요하다.",
+    "power.ts 에 옛 플레이어 색이 RGB 배열([90,160,255], [255,154,74])로 박혀 있었다. hex 도 rgba 도 아니라 design check 와 grep 둘 다 못 잡는 형태였다 — 토큰만 바꿨으면 전력망 기계만 옛 색으로 남았다.",
+    "메뉴 focus 표시·prefers-reduced-motion 미대응은 여전히 열려 있다(design-2.yaml note).",
+    "차트 담당 불균등 배분, 팀전 개인 적중률 미노출 — TASK-002 에서 계속 이월 중."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "DESIGN.md",
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "'플랫폼에 정의돼 있을 것'이라는 가정은 전수 확인 전까지 사실이 아니다. bass-platform 은 규칙을 강제하는 기계이지 무엇이 좋은 디자인인지는 담고 있지 않았다.",
+      "색 체계를 바꿀 때 위험한 것은 hex 리터럴이 아니라 RGB 숫자 배열처럼 검사기가 못 보는 형태다. 검사 통과가 곧 완전성은 아니다.",
+      "시그니처와 플레이어 색이 값을 공유하면 규칙으로 용도를 나눌 수는 있지만 체계로 막은 것은 아니다. 규칙은 다음 사람이 읽어야 지켜진다.",
+      "한 줄 주석을 코드 뒤에 붙이면 같은 줄의 나머지 문장을 삼킨다. 실제로 메뉴 테두리 렌더가 주석에 먹혔고 빌드는 통과했다 — 타입 검사로는 안 잡힌다."
+    ]
+  },
+  "rollback": {
+    "method": "src/ui/tokens.ts 와 src/scenes/rhythm.ts 를 함께 되돌려야 한다. 색 체계와 렌더링이 서로를 전제하므로 한쪽만 되돌리면 화면이 깨진다. menu.ts·power.ts 는 토큰 이름만 쓰므로 토큰 환원으로 함께 복구된다. index.html 은 하드코딩한 3곳(배경·border·box-shadow)을 되돌린다. DESIGN.md 는 Signature 절과 색 역할표를 이전 버전으로 교체한다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": true,
+    "environment": "vite dev server :5173, 개발 장비 Chrome. 사용자가 직접 플레이하며 확인",
+    "notes": "2026-07-29 사용자가 렌더링 결과를 직접 보고 '괜찮다'고 판정했다. 이로써 이 작업의 성패 기준(화면이 구리지 않은지), 네온 룩의 클리셰 여부, 판정선을 담당 플레이어 색으로 칠한 판단이 확인됐다. 계측이 필요한 glow 성능은 별개로 미확인 상태다."
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-29T05:53:55.010Z",
+    "notes": "화면을 직접 플레이하며 확인하고 승인. 남은 미검증은 glow 성능 계측과 저사양 장비 프레임뿐이다."
+  }
+}

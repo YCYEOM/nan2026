@@ -1,0 +1,11 @@
+roles:
+  product-director:
+    owns: [nan2026.yaml, nan/concepts, nan/trace.yaml, docs/submission]
+  gameplay-owner:
+    owns: [game/src, game/Assets]
+  build-evidence-owner:
+    owns: [evidence, builds, licenses]
+conflictRules:
+  - One owner edits a Unity Scene or Prefab at a time.
+  - Prefer additive scenes and feature-owned prefab folders.
+  - Announce ownership before editing shared binary or serialized assets.

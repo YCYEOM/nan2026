@@ -1,0 +1,3 @@
+entries: []
+# Each entry: timestamp, agent, prompt_or_goal, suggestion, human_change, human_approval,
+# files, tests, playtest, commit, build, and licenses.

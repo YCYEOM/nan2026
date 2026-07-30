@@ -1,0 +1,21 @@
+edition: nan2026
+displayName: BASS 0.1.1 — NAN Edition
+event:
+  durationHours: 48
+  deliveryLockHour: 42
+workflow:
+  consecutiveFailuresBeforeBlocked: 2
+  maxReworksBeforeHumanDecision: 3
+  humanApprovalRequired:
+    - concept
+    - runtime
+runtime:
+  selected: null
+  targets: []
+scoring:
+  conceptFit: 30
+  verticalSlice: 25
+  buildReadiness: 15
+  teamReadiness: 15
+  deploymentStability: 10
+  licenseRisk: 5

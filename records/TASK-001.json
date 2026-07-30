@@ -1,0 +1,68 @@
+{
+  "task_id": "TASK-001",
+  "summary_of_changes": "nan/concepts/CON-001.yaml 의 bass init 플레이스홀더를 리허설4 '리듬(협동 릴레이)' 실제 컨셉으로 교체했다. 6축을 docs/GAME_SPEC.md 리허설4 표와 일치시키고, 대표 장면을 동시 비트(합주) 성공 순간으로 지정했으며, 신규 코어 시스템을 rhythm-engine 1개로 명시했다. 하드게이트 7개는 각각 GAME_SPEC 또는 테스트 근거를 notes 에 적고 true 로 판정했다. 점수는 원문 8항목 100점 배점을 CON 스키마 5필드로 압축해 합 88 로 자체 평가했다.",
+  "why": "bass init 직후 CON-001 이 예시 값('connect / cascading response', 하드게이트 전부 false, 점수 0)이라 nan/trace.yaml 과 bass nan evidence report 가 실제와 무관한 값을 내고 있었다. 저장소에는 이미 동작하는 리듬 릴레이 구현이 있으므로 상류 문서를 현실과 맞췄다.",
+  "files_changed": [
+    "nan/concepts/CON-001.yaml",
+    "tasks/TASK-001.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "balanced",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      { "name": "bass nan concept gate CON-001", "level": 2, "status": "pass" },
+      { "name": "bass nan protect verify", "level": 1, "status": "pass" },
+      { "name": "bass nan trace validate", "level": 1, "status": "pass" },
+      { "name": "npm test (37 tests)", "level": 2, "status": "pass" },
+      { "name": "npm run build", "level": 1, "status": "pass" }
+    ],
+    "not_verified": []
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-29T02:11:55Z",
+    "notes": "CON-001 내용과 하드게이트 근거를 확인하고 승인. 승인자는 본인으로 지정."
+  },
+  "known_limitations": [
+    "CON-001 은 리허설 컨셉이다. 본선 주제가 공개되면 CON-002 로 대체해야 한다.",
+    "점수 88/100 은 자체 평가이며 대회 채점 기준이 아니다.",
+    "원문 평가표는 8항목인데 CON 스키마는 5필드라 압축 매핑을 썼다(매핑 근거는 CON-001 notes).",
+    "별도 critic 패스를 돌리지 않았다. critic_findings 의 0 은 '검토 결과 없음'이 아니라 '검토 미실행'이다.",
+    "상태를 READY 에서 HUMAN_REVIEW 로 바로 옮겼다. PLANNED·IMPLEMENTING·VERIFYING·CRITIQUING 을 파일에 단계별로 기록하지는 않았다."
+  ],
+  "out_of_scope_findings": [
+    "nan/trace.yaml 의 THEME-001·DEC-001·REQ-001·SCN-001·TEST-001·EVD-001 이 여전히 플레이스홀더 ID 다. trace validate 는 링크 구조만 보므로 PASS 하지만 내용은 비어 있다 — 후속 작업 필요.",
+    "evidence/ 가 비어 있어 bass nan evidence report 로 낼 산출물이 없다.",
+    "nan/team.yaml 의 gameplay-owner 가 game/src·game/Assets 를 소유한다고 되어 있으나 이 프로젝트의 실제 경로는 src/ 다.",
+    "bass route 는 worker 에 openai/gpt-5.5 를 권고했지만 실제 실행은 claude-opus-5 였다. 라우팅 권고와 실행 환경이 어긋난다."
+  ],
+  "docs_updated": {
+    "needed": false,
+    "updated": []
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "bass nan concept gate 는 하드게이트가 하나라도 false 면 실패한다. 근거 없이 true 로 채우면 게이트가 무의미해지므로, 근거를 notes 에 남기는 것을 규칙으로 삼는다.",
+      "bass init 이 만든 preset 파일은 전부 플레이스홀더다. 설치 직후 PASS 하는 검사(trace validate)가 내용의 진실성을 보장하지 않는다."
+    ]
+  },
+  "design": {
+    "rendered_verification": false,
+    "notes": "UI 변경 없음. nan/concepts/CON-001.yaml 한 파일만 바꿨고 src/ 는 Forbidden scope 였다. 렌더링해서 확인할 대상이 없다. 이 검사는 작업 완료 후 bass.yaml 에 web 프로파일을 추가하면서 생긴 것이다."
+  },
+  "rollback": {
+    "method": "nan/concepts/CON-001.yaml 을 삭제한 뒤 `npx --no-install bass init --preset nan2026` 을 다시 실행하면 플레이스홀더가 재생성된다. 다른 파일은 conflict (preserved) 로 보존된다. tasks/TASK-001.md 는 삭제하면 된다. src/ 와 docs/ 는 이 작업에서 변경되지 않았다."
+  }
+}

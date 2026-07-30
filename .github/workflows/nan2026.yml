@@ -1,0 +1,23 @@
+name: NAN 2026 Harness
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx --no-install bass nan trace validate
+      - run: npx --no-install bass nan protect verify
+      - run: npm test --if-present
+      - run: npm run build --if-present

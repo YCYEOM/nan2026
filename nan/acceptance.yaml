@@ -1,0 +1,12 @@
+protected: true
+checks:
+  - id: concept-approved
+    description: Human approved the final concept.
+  - id: runtime-approved
+    description: Runtime is certified, or a named human accepted the risk.
+  - id: trace-valid
+    command: bass nan trace validate
+  - id: evidence-deterministic
+    command: bass nan evidence report
+  - id: submission-build
+    description: Every claimed target has a recorded successful build; otherwise it remains not-verified.

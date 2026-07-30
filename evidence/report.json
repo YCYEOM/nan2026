@@ -1,0 +1,14 @@
+{
+  "checksum": "1fe5e38de228e46a23ff98a36c28f5f46e26ce58c0de348b85b202f03e9e2b24",
+  "edition": "nan2026",
+  "files": [
+    {
+      "path": "evidence/playtest-2026-07-29-mash.md",
+      "sha256": "e4a613edb6e2bf4ac0977801eac6de465d8029d41656d0a97971dfee91f57a66"
+    },
+    {
+      "path": "evidence/README.md",
+      "sha256": "f8d49b1103d6af43414d4f7fb8c0295a41089fd1dc270ab555437d86e0748635"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "task_id": "TASK-002",
+  "summary_of_changes": "(1) Result 에 \"mash\" 를 추가해 연타 진행 판정을 홀드와 분리하고 씬 판정 텍스트를 \"연타!\"로 고쳤다. (2) 개인 적중률 pacc/pjudged 와 paccuracy() 를 넣고 winner() 를 점수 대신 적중률 기준으로 바꿨다. 동시류도 개인 집계에 포함하되 팀이 깨지면 tally 의 did 로 귀책자만 실패 처리한다(동시 탭은 syncPressed, 협동 홀드 조기 뗌은 먼저 뗀 player). HUD·인게임·종료 화면에 적중률과 담당 노트 수를 병기했다. (3) DESIGN.md 와 src/ui/tokens.ts 를 신설하고 씬 3개 + index.html 의 색·폰트 리터럴을 토큰 참조로 치환했다. bass.yaml 에 web 프로파일을 추가해 design critic 과 design check 를 켰다.",
+  "why": "(1) 플레이테스트에서 연타 노트에 \"홀드를 유지해주세요\"가 떴다 — 연타가 hold 필드를 창 길이로 재사용하는데 result 까지 공유해 UI가 구분하지 못했다. (2) 변칙 차트는 담당이 랜덤이라 P1/P2 노트 수·종류가 다르고 연타·홀드 보너스 배분도 운이라, 점수 비교가 실력이 아니라 차트 운을 쟀다(사용자 지적). (3) 디자인 규칙이 정의된 적이 없어 bass design check 가 FAIL 이었고 코드에는 같은 의미의 색이 씬마다 다르게 박혀 있었다.",
+  "files_changed": [
+    "src/systems/rhythm.ts",
+    "src/scenes/rhythm.ts",
+    "src/scenes/menu.ts",
+    "src/scenes/power.ts",
+    "src/rhythm.test.ts",
+    "src/ui/tokens.ts",
+    "DESIGN.md",
+    "index.html",
+    "bass.yaml",
+    "docs/GAME_SPEC.md",
+    "docs/DECISIONS.md",
+    "tasks/TASK-002.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "balanced",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (41 tests, 신규 4개)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "grep 색·폰트 리터럴 잔존 0건 (src/scenes/)",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "연타 난이도(3~4회/1.6박)가 실제로 칠 만한지 — 사용자 플레이테스트 미완료",
+      "폰트 스케일 적용 후 화면이 1~4px 이동한 결과가 괜찮은지 — 렌더링 미확인",
+      "적중률 표기가 플레이 중 읽히는지 — 렌더링 미확인"
+    ]
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-29T02:21:04Z",
+    "notes": "승인. not_verified 3건(연타 난이도·폰트 이동·적중률 가독성)은 해소되지 않은 채로 남는다 — 승인이 시각 검증을 대신하지 않는다. design.rendered_verification 은 false 그대로다."
+  },
+  "known_limitations": [
+    "사후 기록이다. pre-task 게이트가 구현을 막지 못했고, 순서를 지킨 척하지 않는다.",
+    "별도 critic 패스를 돌리지 않았다. web 프로파일이 design critic 을 요구하지만 실행하지 않았다. critic_findings 의 0 은 '문제 없음'이 아니라 '미실행'이다.",
+    "폰트 스케일 밖 값 8종(13/15/17/19/20/24/30/40)을 가장 가까운 단계로 올렸다. 캔버스 텍스트가 1~4px 이동한다.",
+    "C.player[2](P3 초록)가 C.success 와 같은 값이라 DESIGN.md 원칙 1과 충돌한다. 3인 확장 전에는 드러나지 않아 그대로 뒀다.",
+    "index.html 은 CSS라 토큰을 import 할 수 없어 값을 복제했다. tokens.ts 를 바꾸면 수동으로 맞춰야 한다."
+  ],
+  "out_of_scope_findings": [
+    "차트 담당 배분이 균등하지 않다. 적중률로 비교하면 불공정하진 않지만 한쪽이 4노트만 받으면 표본이 너무 작다 — 균등 배분 여부는 별도 판단.",
+    "팀전 종료 화면에는 팀 정확도만 있고 개인 적중률이 없다.",
+    "메뉴에 키보드 focus 표시가 없다. 마우스·숫자키를 둘 다 받는데 현재 항목을 알 수 없다(DESIGN.md 에 MISSING 으로 기록).",
+    "prefers-reduced-motion 미대응(DESIGN.md 에 MISSING 으로 기록).",
+    "nan/trace.yaml 이 여전히 플레이스홀더 ID 다 (TASK-001 에서도 지적)."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md",
+      "DESIGN.md"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "필드를 다른 의미로 재사용하면(연타의 hold=창 길이) 그 필드를 읽는 모든 소비자가 오인한다. 재사용 시 판별 가능한 별도 신호를 같이 둔다.",
+      "테스트가 전부 통과해도 '칠 만한가'·'읽히는가'는 증명되지 않는다. 07-27 연타 완화가 테스트만 보고 완료 처리됐고 표시 버그는 사람이 쳐보고서야 나왔다.",
+      "집계 지점을 한 곳(tally)으로 모으면 판정 경로가 늘어도 누락이 안 생긴다. 반대로 applyHit 이 beat 인덱스를 몰라 호출부마다 처리했다면 경로 8개를 다 손봐야 했다.",
+      "프로파일을 나중에 켜면 검사가 소급 적용된다. web 프로파일 추가로 TASK-001 의 pre-complete 에 design 검사가 새로 붙었다."
+    ]
+  },
+  "rollback": {
+    "method": "파일 단위 수동 환원. src/ui/tokens.ts 와 DESIGN.md 삭제, bass.yaml 에서 web 프로파일 한 줄 제거, 씬 3개와 index.html 을 리터럴로 환원, 엔진에서 Result 의 \"mash\"·tally·paccuracy 제거 후 winner() 를 pscore 비교로 되돌린다. git 이 없는 저장소라 자동 되돌리기는 불가능하다.",
+    "_note": "docs/GAME_SPEC.md·DECISIONS.md 의 추가분은 해당 절만 제거하면 된다."
+  },
+  "design": {
+    "rendered_verification": false,
+    "environment": "vite dev server :5173 실행 중이나 사람이 화면을 확인하지 않음",
+    "notes": "색·폰트 토큰화와 적중률 표기는 전부 시각 변경이다. 빌드와 design check 는 통과했지만 실제 렌더링을 사람이 보지 않았다. 폰트 스케일로 캔버스 텍스트가 1~4px 이동한 상태다. 시각적 검증 완료로 표현하면 안 된다."
+  }
+}

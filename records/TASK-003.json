@@ -1,0 +1,97 @@
+{
+  "task_id": "TASK-003",
+  "summary_of_changes": "nan/trace.yaml 의 플레이스홀더 7개(THEME-001~EVD-001)를 실제 대상을 가리키는 ID 32개로 교체했다: 주제 1 · 컨셉 1 · 결정 7 · 요구 6 · 시나리오 5 · 테스트 10 · 증거 3. 각 ID 옆에 가리키는 파일·절·테스트 이름을 YAML 주석으로 달았다. 링크 41개로 주제→컨셉→결정→요구→시나리오→테스트→증거 사슬을 실제 관계대로 연결했다. bass nan evidence report 를 처음 실행해 evidence/report.json 을 생성했다.",
+  "why": "bass init 이 넣은 trace 가 한 줄짜리 빈 ID 사슬이라 bass nan trace validate 의 PASS 가 아무것도 보장하지 않았다. validate 는 중복·죽은 링크·고아만 검사하고 ID 가 실제 무언가를 가리키는지는 보지 않는다. TASK-001·TASK-002 가 연속으로 이 문제를 out_of_scope 로 남겼고, 이제 사슬을 채울 실물(승인된 CON-001, DECISIONS 항목, 19개 리듬 테스트, 플레이테스트 문서)이 갖춰졌다.",
+  "files_changed": [
+    "nan/trace.yaml",
+    "evidence/report.json",
+    "tasks/TASK-003.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "reasoning-high",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "bass nan trace validate",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan evidence report (files: 2)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "npm test (41 tests)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "grep 플레이스홀더 ID 잔존 0건 (nan/trace.yaml)",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "주석이 가리키는 대상이 실재하는지는 작성 시점에 사람이 눈으로 맞춘 것이다. trace validate 는 이를 검사하지 않으므로, 테스트 이름이나 DECISIONS 항목이 바뀌면 주석이 조용히 어긋난다.",
+      "사슬에 넣을 결정·요구의 취사선택이 적절한지 — 7개 결정 중 무엇을 남기고 무엇을 뺄지는 사람 판단 대상이다."
+    ]
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-29T02:36:55Z",
+    "notes": "승인. not_verified 2건(주석-실물 연결이 기계 검증 대상이 아님, 결정·요구 취사선택의 적절성)은 해소되지 않은 채로 남는다."
+  },
+  "known_limitations": [
+    "trace ID 와 실물의 연결은 YAML 주석뿐이다. 기계가 검증하지 않으므로 코드가 바뀌면 수동으로 맞춰야 한다.",
+    "리허설3(전력망)은 사슬에 없다. CON-001 이 리듬 컨셉이라 전력망을 넣으면 주제가 둘로 갈라진다. 본선 컨셉 확정 시 정리 필요.",
+    "evidence 는 3개 ID 로 잡았지만 evidence/ 실제 파일은 playtest 문서와 README 2개뿐이다. EVD-SUITE·EVD-BUILD 는 명령 실행 결과이지 저장된 산출물이 아니다.",
+    "별도 critic 패스를 돌리지 않았다. critic_findings 의 0 은 '문제 없음'이 아니라 '미실행'이다."
+  ],
+  "out_of_scope_findings": [
+    "nan2026.yaml 의 runtime.selected 가 여전히 null 이다. 런타임 선택은 nan2026.yaml 이 사람 승인을 요구하는 항목이라 별도 판단이 필요하다.",
+    "07-29 리드인 담당 표시 수정(src/scenes/rhythm.ts)은 어느 task 에도 속하지 않은 채로 남아 있다. trace 에는 DEC-TURN-LEADIN 으로 들어갔지만 run record 는 없다.",
+    "리드인 담당 표시에는 테스트가 없다. 순수 렌더링이라 현재 테스트 구조로는 검증 대상이 아니다 — SCN-RELAY-CLEAR 에서 REQ-TURN-VISIBLE 을 받는 테스트는 라운드로빈 회전만 본다.",
+    "차트 담당 불균등 배분, 팀전 개인 적중률 미노출, 메뉴 키보드 focus 표시 없음, prefers-reduced-motion 미대응 — TASK-002 에서 이월."
+  ],
+  "docs_updated": {
+    "needed": false,
+    "updated": []
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "검사가 PASS 한다고 내용이 옳은 것은 아니다. trace validate 는 ID 구조만 보므로 빈 플레이스홀더 사슬도 통과시킨다. 도구가 무엇을 검사하지 '않는지'를 먼저 읽어야 한다.",
+      "ID 를 번호(DEC-001)로 두면 무엇을 가리키는지 파일을 열어야 안다. 의미로 지으면(DEC-MASH-EASE) 사슬을 읽는 것만으로 관계가 보인다.",
+      "추적 사슬은 링크를 채우려 들면 목록이 된다. 실제 관계만 잇고, 없는 관계는 비워두는 편이 읽힌다."
+    ]
+  },
+  "rollback": {
+    "method": "nan/trace.yaml 을 삭제하고 npx --no-install bass init --preset nan2026 을 다시 실행하면 플레이스홀더가 재생성된다(다른 파일은 conflict preserved). evidence/report.json 은 생성물이라 삭제하면 된다. 코드와 문서는 이 작업에서 변경되지 않았다."
+  },
+  "design": {
+    "rendered_verification": false,
+    "notes": "UI 변경 없음. nan/trace.yaml 과 evidence/report.json 만 다뤘고 src/ 는 Forbidden scope 였다. 렌더링해서 확인할 대상이 없다."
+  }
+}

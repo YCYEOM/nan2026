@@ -1,0 +1,15 @@
+gates:
+  - { id: T+6, hour: 6, outcome: vertical-slice }
+  - { id: T+12, hour: 12, outcome: full-loop }
+  - { id: T+18, hour: 18, outcome: feature-freeze }
+  - { id: T+30, hour: 30, outcome: content-freeze }
+  - { id: T+36, hour: 36, outcome: submission-candidate }
+  - { id: T+42, hour: 42, outcome: submission-lock }
+hardGates:
+  - theme-is-mechanic
+  - one-sentence-playable-loop
+  - representative-scene
+  - vertical-slice-in-six-hours
+  - maximum-two-new-core-systems
+  - visible-player-feedback
+  - shippable-evidence

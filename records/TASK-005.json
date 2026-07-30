@@ -1,0 +1,103 @@
+{
+  "task_id": "TASK-005",
+  "summary_of_changes": "(1) 홀드 꼬리를 pathX/pathY 16구간 샘플링으로 궤도 위에 얹고, wavy(k) 가 홀드에 항상 참이 되도록 확장했다(탭은 1/3 규칙 유지, 연타는 꼬리가 없어 제외). (2) MenuScene 에 title·hint 매개변수를 추가해 하위 메뉴로 재사용하고, main.ts 에 RHYTHM_MODES 를 두어 게임 선택 → 모드 선택 2단계로 만들었다. 개인전 설명의 옛 승패 기준(점수 레이스)을 적중률로 고쳤다. (3) 판정 등급별 피드백 feedback() 을 신설해 충격파 링(rings)과 붉은 화면 가장자리(missFlash)를 추가하고 press·release·step 세 경로를 통합했다. 판정 팝업도 등급별로 크기·이동 방향·글로우를 차등했다.",
+  "why": "(1) 사용자 관찰 '막대가 위아래로 움직이긴 하지만 1자로만 되어 있다' — 꼬리를 두 끝점 직선으로 그려 궤도를 벗어났고 홀드의 2/3은 애초에 직선 궤도였다. (2) 최상위에 리듬 항목이 둘이라 목록이 늘어졌다. (3) 사용자 요청 '퍼펙트와 굿과 베드가 다 다르게' — perfect 와 good 이 파티클까지 동일하고 흔들림만 달랐다.",
+  "files_changed": [
+    "src/scenes/rhythm.ts",
+    "src/scenes/menu.ts",
+    "src/main.ts",
+    "DESIGN.md",
+    "docs/GAME_SPEC.md",
+    "docs/DECISIONS.md",
+    "tasks/TASK-005.md"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "balanced",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (41 tests, 판정 엔진 무변경 확인)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "grep hex/rgb/rgba/폰트 리터럴 잔존 0건 (src/scenes/)",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "물결의 진폭(26)과 주기(2 + k % 3)가 실제 플레이에서 과한지 — 사람이 보지 않았다.",
+      "판정 이펙트가 과해서 노트나 판정선을 가리는지(DESIGN.md 원칙 5) — 링·파티클을 늘렸으므로 확인이 필요하다.",
+      "하위 메뉴 한 단계가 시연에서 번거로운지.",
+      "파티클 수를 12 → 최대 28(perfect 22 + 흰 코어 6)로 늘렸다. glow 와 겹쳐 프레임에 영향이 있는지 계측하지 않았다 — TASK-004 에서 이월된 미계측 항목이 커진 셈이다."
+    ]
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0
+  },
+  "known_limitations": [
+    "사후 기록이다. pre-task 게이트가 구현을 막지 못했고, 순서를 지킨 척하지 않는다.",
+    "이번 변경분에 대한 critic 패스를 돌리지 않았다. critic_findings 의 0 은 '문제 없음'이 아니라 '미실행'이다. critiques/TASK-002/design-2.yaml 의 low/note 5건도 그대로 열려 있다.",
+    "판정 등급 피드백은 렌더링 계층이라 자동 테스트가 없다. 41개 테스트는 엔진이 안 바뀌었음을 증명할 뿐 이펙트가 맞는지는 증명하지 않는다.",
+    "홀드가 항상 물결이 되면서 화면의 웨이브 비율이 올라갔다. 07-27 에 '모든 노트 굽이침도 과함'으로 롤백한 이력이 있어 같은 함정에 다시 들어갈 여지가 있다."
+  ],
+  "out_of_scope_findings": [
+    "하위 메뉴가 생기면서 메뉴 키보드 focus 표시의 필요성이 커졌다. 이제 마우스 없이 두 단계를 이동하는데 현재 항목 표시가 없다(design-2.yaml note 로 이미 열려 있던 항목).",
+    "재미 요소 검토 결과(패스·개인전 견제·콤보 위험보상·생명 회복)가 사용자 판단 대기 중이다. 특히 '개인전은 대결인데 플레이어 간 상호작용이 0'이라는 발견은 별도 작업이 필요하다.",
+    "prefers-reduced-motion 미대응 상태에서 이펙트를 강화했다. 흔들림·파티클이 늘어 저감 수단의 필요성이 커졌다.",
+    "차트 담당 불균등 배분, 팀전 개인 적중률 미노출 — TASK-002 에서 계속 이월 중."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "DESIGN.md",
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "같은 판정을 세 경로(press·release·step)에서 따로 처리하면 한 경로만 조용히 달라진다. 실제로 step 경로의 홀드 완주에는 흔들림이 빠져 있었고, 통합하고 나서야 드러났다.",
+      "궤도 함수를 두고도 렌더가 두 끝점만 이으면 궤도를 따르지 않는다. 곡선 경로를 쓰는 요소는 샘플링해서 그려야 한다.",
+      "등급 구분은 양(파티클 수)보다 종류(링 겹수, 화면 가장자리)로 하는 편이 순간 판독에 유리하다."
+    ]
+  },
+  "rollback": {
+    "method": "src/scenes/rhythm.ts 에서 TAIL_SEGMENTS·rings·missFlash·feedback 을 제거하고 호출부 3곳을 이전 인라인 코드로 되돌린 뒤 wavy(k) 를 k % 3 === 1 로 환원한다. main.ts 는 GAMES 를 3항목 평면 목록으로, menu.ts 는 title/hint 매개변수를 제거한다(기본값이 있어 호출부는 그대로 동작한다). 문서는 해당 절만 제거한다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": true,
+    "environment": "vite dev server :5173 (2026-07-30). 사람이 화면을 직접 확인함",
+    "notes": "세 건 모두 시각 변경이다. 2026-07-30 사용자가 실행 화면을 보고 정상 동작을 확인했다. DESIGN.md 원칙 5(장식이 판정을 가리지 않는다) 충돌 여부도 이 확인에 포함된다. 다만 프레임 계측은 별개로 남아 있다."
+  },
+  "human_approval": {
+    "approved": true,
+    "approver": "yeomyooncheol",
+    "at": "2026-07-30T03:29:43Z",
+    "notes": "dev server 를 띄워 화면을 직접 확인하고 '정상 동작 확인' 으로 승인. 물결 진폭·판정 이펙트 가림·하위 메뉴 번거로움 세 건은 눈으로 보고 문제 없다고 판단했다. 파티클 28개 + glow 의 프레임 영향은 여전히 계측하지 않았다 — 승인이 계측을 대신하지 않는다."
+  }
+}

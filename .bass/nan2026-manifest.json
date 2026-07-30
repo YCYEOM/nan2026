@@ -1,0 +1,59 @@
+{
+  "adapterVersions": {
+    "capacitor-mobile": "1.0.0",
+    "phaser-web": "1.0.0",
+    "pixi-web": "1.0.0",
+    "playcanvas-web": "1.0.0",
+    "unity": "1.0.0",
+    "vanilla-web": "1.0.0"
+  },
+  "bassVersion": "0.1.1",
+  "edition": "nan2026",
+  "files": [
+    {
+      "path": ".github/workflows/nan2026.yml",
+      "sha256": "072357ed4c78dbe18a759a183ae6e8e82735cf7d3742e0b0483cdb75924b596d"
+    },
+    {
+      "path": "docs/submission/README.md",
+      "sha256": "602d0adcd57bcb955a0ab1a49fc13f8a2e50da166baeb04749c7b9cb658d68ee"
+    },
+    {
+      "path": "docs/submission/ai-use-log.yaml",
+      "sha256": "e4fe4f9e84a62bb8b5482b9a54638e316152984e543c0d543dd41adf0c74ced2"
+    },
+    {
+      "path": "evidence/README.md",
+      "sha256": "f8d49b1103d6af43414d4f7fb8c0295a41089fd1dc270ab555437d86e0748635"
+    },
+    {
+      "path": "nan/AGENT_WORKFLOW.md",
+      "sha256": "8a40bad75aa24cbd5c70493763c90dda8bffa0d15200575f48b98c7db38a0fba"
+    },
+    {
+      "path": "nan/acceptance.yaml",
+      "sha256": "15774b0627b1423b789328b25d3234ee29fe76ce871f23cbf7d63c3349bf097c"
+    },
+    {
+      "path": "nan/concepts/CON-001.yaml",
+      "sha256": "782221358e26598945f8e224c333f9b0230a6276efd3813986ca55fbacd764f0"
+    },
+    {
+      "path": "nan/gates.yaml",
+      "sha256": "c8ddbeafcd8091fbc82f42400190d71e58b8629d6024f28d720716449e749b32"
+    },
+    {
+      "path": "nan/team.yaml",
+      "sha256": "372d38615649cb0de79c332412971735a6427ae9a4199499b75ae68622fa852f"
+    },
+    {
+      "path": "nan/trace.yaml",
+      "sha256": "ef0dc22410a741e40ceb6400477e711631a67ab6f3d872a0f9c4cab15d4bd2a8"
+    },
+    {
+      "path": "nan2026.yaml",
+      "sha256": "2e53087b07cb8a31d95e1aa2e21c74c498ad37fde0698c44faea461f3f90088a"
+    }
+  ],
+  "templateVersion": "1.0.0"
+}

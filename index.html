@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NAN2026 Harness</title>
+    <style>
+      /* 값의 출처는 src/ui/tokens.ts (C.bg / C.text / C.sig / C.sigEnd / F.sm).
+         CSS 라 import 할 수 없어 복제한다 — tokens.ts 를 바꾸면 여기도 손으로 맞춰야 한다. */
+      body { margin: 0; background: #0A0612; color: #fff; font-family: system-ui, sans-serif; }
+      #hud { position: fixed; top: 8px; left: 8px; font-size: 14px; line-height: 1.5; }
+      canvas {
+        display: block; margin: 0 auto; background: #0A0612;
+        border: 1px solid #3D2A5C;                 /* C.line */
+        box-shadow: 0 0 40px rgba(255, 46, 151, 0.18),  /* C.sig */
+                    0 0 80px rgba(0, 229, 255, 0.10);   /* C.sigEnd */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud"></div>
+    <canvas id="game" width="640" height="480"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

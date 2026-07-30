@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.DS_Store
+.idea/
+
+# bass-platform 은 0.2.0 만 커밋한다 (package.json 이 가리키는 버전).
+# 0.1.1 은 아무것도 참조하지 않는 숙은 물건이라 제외한다.
+tools/bass-platform-0.1.1.tgz

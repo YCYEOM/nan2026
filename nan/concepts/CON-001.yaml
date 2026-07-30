@@ -1,0 +1,46 @@
+id: CON-001
+title: 리듬 릴레이 — 차례가 돌아가는 협동 비트
+summary: 공통 박자에 맞춰 한 명씩 돌아가며 자기 차례 비트를 정확히 눌러 팀 콤보를 잇는다.
+tags: [simple, 2d, web, local-coop, rehearsal]
+axes:
+  space: lane — 비트 하이웨이 한 줄, 노트가 판정선으로 흘러온다
+  coreVerb: timing input — 자기 차례에 자기 키 하나 (P1 F / P2 J)
+  systemBehavior: oscillate — bpm 박자가 계속 진행하며 담당을 라운드로빈으로 넘긴다
+  pressure: time (판정 창 ±0.09s perfect / ±0.2s good) + shared consequence (팀 생명 4·콤보 공유)
+  themeCoupling: 리듬을 빼면 판정 창과 차례 전환이 동시에 사라져 규칙 자체가 남지 않는다
+  visualReward: chain reaction — 정타가 이어질수록 하이웨이가 연쇄 점등하고 콤보가 치솟는다
+representativeScene: syncEvery 번째 동시 비트에서 두 사람이 같은 순간에 눌러 흰 원이 터지고, 끊길 뻔한 콤보가 이어지며 하이웨이 전체가 한 번에 점등된다.
+newCoreSystems: [rhythm-engine]
+hardGates:
+  theme-is-mechanic: true
+  one-sentence-playable-loop: true
+  representative-scene: true
+  vertical-slice-in-six-hours: true
+  maximum-two-new-core-systems: true
+  visible-player-feedback: true
+  shippable-evidence: true
+score:
+  theme: 26
+  playability: 18
+  novelty: 12
+  feasibility: 18
+  visualClarity: 14
+approvedBy: yeomyooncheol
+notes: |
+  리허설 컨셉이다. 본선 주제가 공개되면 CON-002 로 새로 만든다.
+  상세 명세는 docs/GAME_SPEC.md "리허설4: 주제 리듬 (협동 릴레이)" 절,
+  판단 기록은 docs/DECISIONS.md.
+
+  하드게이트 근거:
+  - theme-is-mechanic: 판정 창·라운드로빈 차례가 모두 박자에서 파생 (rhythm.ts 비트 k = leadIn + k·60/bpm)
+  - one-sentence-playable-loop: summary 한 문장이 그대로 플레이 루프
+  - representative-scene: 동시 비트(합주) 성공 순간
+  - vertical-slice-in-six-hours: 이미 구현되어 시작→플레이→승패→결과→재시작이 흐름
+  - maximum-two-new-core-systems: 신규는 RhythmEngine 1개, Harness·Sfx 는 재사용
+  - visible-player-feedback: 판정 텍스트·콤보 점등·파티클 버스트·화면 흔들림·메트로놈/멜로디
+  - shippable-evidence: 차트를 절차 생성하고 에셋이 없다(Web Audio 신스 + 도형 렌더)
+    → 원문 게이트7 "대량의 수작업 콘텐츠" 위험 없음. npm run build 로 dist/ 산출.
+
+  점수는 원문 8항목 100점 배점을 CON 스키마 5필드로 압축한 자체 평가(합 88).
+  theme=주제 필연성, playability=즉시 이해+핵심 재미, novelty=차례 릴레이+동시 비트,
+  feasibility=구현 가능성+범위 통제+하네스 활용+기술 안정성, visualClarity=대표 장면.

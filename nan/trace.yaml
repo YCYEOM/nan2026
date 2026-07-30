@@ -1,0 +1,237 @@
+# 주제 → 컨셉 → 결정 → 요구 → 시나리오 → 테스트 → 증거.
+# ID 옆 주석이 가리키는 대상이다. bass nan trace validate 는 ID 구조만 보고
+# 대상이 실재하는지는 검사하지 않으므로, 주석과 실물이 어긋나면 사람이 잡아야 한다.
+#
+# 리허설3(전력망)은 넣지 않았다 — CON-001 이 리듬 컨셉이라 사슬이 갈라진다.
+# 본선 컨셉이 정해지면 하나로 정리한다.
+
+themes:
+  - THEME-RHYTHM            # 리허설 주제 "리듬" — docs/GAME_SPEC.md "리허설4: 주제 리듬 (협동 릴레이)"
+  - THEME-MIMICRY           # 리허설 주제 "모방" — 취소됨(MIM-001 CANCELLED). 기록으로 남긴다
+  - THEME-PUSHLUCK          # 리허설 주제 "떠넘기기" — docs/GAME_SPEC.md "리허설6: 주제 떠넘기기"
+
+concepts:
+  - CON-001                 # nan/concepts/CON-001.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
+  - CON-002                 # nan/concepts/CON-002.yaml — 승인 87/100, 이후 CON-003 이 대체
+  - CON-003                 # nan/concepts/CON-003.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
+
+decisions:
+  - DEC-RELAY               # DECISIONS 07-27 리허설4 채택: 라운드로빈 턴 릴레이
+  - DEC-SYNC                # DECISIONS 07-27 동시 비트(합주) + 협동 홀드
+  - DEC-MASH-EASE           # DECISIONS 07-27 연타 완화: 5→3~4회, 1→1.6박, 앞뒤 grace
+  - DEC-MASH-RESULT         # DECISIONS 07-29 Result 에 mash 추가 — 홀드와 표시 분리
+  - DEC-ACCURACY            # DECISIONS 07-29 개인 비교를 점수→적중률, 동시류 귀책 분리
+  - DEC-TURN-LEADIN         # DECISIONS 07-29 리드인에도 첫 노트 담당 표시
+  - DEC-DESIGN-TOKENS       # DECISIONS 07-29 DESIGN.md + tokens.ts + web 프로파일
+  - DEC-MIM-THEME           # DECISIONS 07-30 주제 "모방" 채택 — 선정 기준은 쇼츠 대량 생산
+  - DEC-MIM-DECAY-RELAY     # DECISIONS 07-30 열화를 중계에만. P1 자기 캔버스는 영구
+  - DEC-MIM-THREE-SCORES    # DECISIONS 07-30 점수 3개(전달·재현·총점) + 낮은 쪽 붉게
+  - DEC-MIM-IOU-DILATE      # DECISIONS 07-30 32×24 격자 IoU + 1칸 팽창 (순수 IoU 아님)
+  - DEC-MIM-NO-TRACE        # DECISIONS 07-30 원본 덧그리기 금지 — 별도 참조 상자, 4:3 통일
+  - DEC-MIM-SLICE-SPLIT     # DECISIONS 07-30 세로 조각은 2분할 순차. 정보 비대칭 미성립을 명시
+  - DEC-MIM-CANCEL          # DECISIONS 07-30 모방 취소 — 의미 없는 페이로드 + 퍼센트 페이오프
+  - DEC-PSH-THEME           # DECISIONS 07-30 주제 "떠넘기기" 채택 — 순수 랜덤은 클립이 안 된다
+  - DEC-PSH-NO-COLLAPSE     # DECISIONS 07-30 붕괴 방어 2종(굴려야 넘긴다 / 게이지만큼 pot)
+  - DEC-PSH-NO-LIVES        # DECISIONS 07-30 생명 없음 — 점수 차이가 깊이의 유일한 출처
+  - DEC-PSH-POT-ROUND       # DECISIONS 07-30 pot 은 라운드 끝에만 확보
+  - DEC-PSH-RANGE-ONLY      # DECISIONS 07-30 임계는 범위만 공개, 확률 미표시
+  - DEC-PSH-BLAME-3         # DECISIONS 07-30 범인 3종을 이름으로 적는다
+
+requirements:
+  - REQ-TURN-VISIBLE        # 다음 비트 담당을 항상 화면에서 알 수 있다 (리드인 포함)
+  - REQ-JUDGE-WINDOW        # perfect ±0.09s / good ±0.2s, 남의 차례=wrong, 창 전=early
+  - REQ-SHARED-FATE         # 팀전은 콤보·생명·점수를 공유한다 — 한 명의 미스가 전원 손해
+  - REQ-NOTE-KIND-CLEAR     # 노트 종류(탭/홀드/동시/협동홀드/연타)가 지시문에서 구분된다
+  - REQ-FAIR-COMPARE        # 개인 비교는 차트 운이 아니라 적중률로 한다 (모수 병기)
+  - REQ-BLAME-PRECISE       # 팀이 깨지면 귀책자만 개인 지표가 하락한다
+  - REQ-MIM-BLAME-LAYER     # 원본↔P1 과 P1↔P2 를 따로 보여 어느 층이 망쳤는지 갈린다
+  - REQ-MIM-NO-TRACE        # P1 은 원본을 덧그릴 수 없다 (참조 상자 분리)
+  - REQ-MIM-RELAY-ONLY      # P2 는 원본을 볼 수 없고 사라지는 중계만 본다
+  - REQ-MIM-NO-ASSETS       # 타깃은 시드로 절차 생성된다 — 수작업 콘텐츠 0
+  - REQ-PSH-MUST-ROLL       # 차례에 한 번 굴리기 전에는 넘길 수 없다
+  - REQ-PSH-GAUGE-KEEPS     # 넘겨도 게이지가 줄지 않는다 — 넘기기가 공격이다
+  - REQ-PSH-RISK-VISIBLE    # 임계 범위가 항상 화면에 보이고 위험 구간이 음영으로 표시된다
+  - REQ-PSH-BLAME-NAMED     # 터질 때 범인이 이름으로 표시된다 (숫자가 아니다)
+
+scenarios:
+  - SCN-RELAY-CLEAR         # 두 사람이 번갈아 32비트를 완주해 스테이지 클리어
+  - SCN-SYNC-BREAK          # 동시 비트에서 한 명이 창을 놓쳐 팀 미스
+  - SCN-COOP-EARLY-RELEASE  # 협동 홀드에서 한 명이 먼저 떼 팀 브레이크
+  - SCN-MASH-FILL           # 연타 창 안에서 3~4회를 채워 성공
+  - SCN-UNEVEN-CHART        # 변칙 차트가 담당을 불균등 배분한 판에서 승자를 가림
+  - SCN-MIM-RELAY-FAIL      # P1 은 잘 그렸는데 중계가 사라져 P2 가 딴 그림을 낸다 (재현이 낮다)
+  - SCN-MIM-DRAW-FAIL       # P1 이 원본을 놓쳐 애초에 다른 것을 그린다 (전달이 낮다)
+  - SCN-MIM-BURST           # P1 이 선을 몰아 그려 P2 가 후반에 아무것도 못 본다
+  - SCN-PSH-GREED-BOOM      # 욕심내서 한 번 더 굴린 사람이 자기 손에 터진다 (self)
+  - SCN-PSH-PASS-BOOM       # 넘김을 받아 강제로 굴린 사람이 터진다 (passer)
+  - SCN-PSH-COMEBACK        # 쫓기는 쪽이 위험을 안고 굴려 pot 을 키운다
+
+tests:
+  - TEST-RELAY-ROTATION     # rhythm.test "차례는 라운드로빈으로 돈다"
+  - TEST-JUDGE-PERFECT      # rhythm.test "정확 타이밍 = perfect, 콤보·점수 상승"
+  - TEST-JUDGE-WRONG-MISS   # rhythm.test "남의 차례에 누르면 wrong…" + "창을 넘기면 miss…"
+  - TEST-SYNC-PARTIAL       # rhythm.test "동시 비트: 한 명만 누르고 창 넘기면 팀 미스"
+  - TEST-COOP-HOLD          # rhythm.test "협동 홀드: 전원이 같이 누르고 유지하다…"
+  - TEST-MASH-FILL          # rhythm.test "연타 노트: 담당이 창 안에서 필요 횟수만큼…"
+  - TEST-CHART-UNEVEN       # rhythm.test "변칙 차트는 담당 노트 수가 플레이어마다 다르다…"
+  - TEST-WIN-BY-ACCURACY    # rhythm.test "승패는 노트 수가 아니라 적중률로 가린다"
+  - TEST-BLAME-SYNC         # rhythm.test "동시 탭을 한 명만 놓치면 그 사람 적중률만 떨어진다"
+  - TEST-BLAME-COOP         # rhythm.test "협동 홀드를 먼저 뗀 사람만 실패로 기록된다"
+  - TEST-MIM-TARGET-SEED    # mimicry.test "같은 시드는 같은 도형, 다른 시드는 다른 도형"
+  - TEST-MIM-TARGET-BOUND   # mimicry.test "점 개수·0~1 범위" + "격자 수로 잘린다(무한 루프 방지)"
+  - TEST-MIM-IOU-IDENTITY   # mimicry.test "자기 자신과 비교하면 1" + "빈 그림 0/1"
+  - TEST-MIM-IOU-MONOTONE   # mimicry.test "많이 어긋난 그림이 조금 어긋난 그림보다 낮다"
+  - TEST-MIM-TTL            # mimicry.test "갓 그린 1 · 절반 0.5 · 만료 0" + "ttl<=0 은 영구"
+  - TEST-MIM-RELAY-WINDOW   # mimicry.test "중계는 그려진 시각 이후 수명 동안만 보인다"
+  - TEST-PSH-MUST-ROLL      # pushluck.test "굴리기 전에는 넘기기가 거부된다" + 핑퐁 방지
+  - TEST-PSH-GAUGE-POT      # pushluck.test "게이지와 pot 이 같은 값만큼 오른다"
+  - TEST-PSH-PASS-KEEPS     # pushluck.test "넘겨도 게이지는 줄지 않는다"
+  - TEST-PSH-BOOM-SETTLE    # pushluck.test "터진 쪽 pot 소멸 + 상대 확보" + 리셋·선수
+  - TEST-PSH-BLAME          # pushluck.test 범인 3종(passer/self/none)
+  - TEST-PSH-DETERMINISM    # pushluck.test "같은 시드는 같은 굴림 순서" + 눈 범위
+  - TEST-PSH-WIN            # pushluck.test "목표 도달 시 승자 확정, 이후 무효" + 임계 범위
+
+evidence:
+  - EVD-PLAYTEST-MASH       # evidence/playtest-2026-07-29-mash.md — 연타 난이도 합격(스테이지 4까지)
+  - EVD-SUITE               # npm test 72개 통과 (src/*.test.ts)
+  - EVD-BUILD               # npm run build → dist/ (tsc + vite)
+
+links:
+  # 주제 → 컨셉
+  - { from: THEME-RHYTHM, to: CON-001 }
+
+  # 컨셉 → 결정
+  - { from: CON-001, to: DEC-RELAY }
+  - { from: CON-001, to: DEC-SYNC }
+  - { from: CON-001, to: DEC-MASH-EASE }
+  - { from: CON-001, to: DEC-DESIGN-TOKENS }
+  - { from: DEC-MASH-EASE, to: DEC-MASH-RESULT }     # 완화 후 플레이테스트에서 표시 버그 발견
+  - { from: DEC-RELAY, to: DEC-ACCURACY }            # 담당 랜덤 배분이 점수 비교를 무의미하게 함
+  - { from: DEC-RELAY, to: DEC-TURN-LEADIN }
+
+  # 결정 → 요구
+  - { from: DEC-RELAY, to: REQ-TURN-VISIBLE }
+  - { from: DEC-TURN-LEADIN, to: REQ-TURN-VISIBLE }
+  - { from: DEC-RELAY, to: REQ-JUDGE-WINDOW }
+  - { from: DEC-SYNC, to: REQ-SHARED-FATE }
+  - { from: DEC-MASH-RESULT, to: REQ-NOTE-KIND-CLEAR }
+  - { from: DEC-DESIGN-TOKENS, to: REQ-NOTE-KIND-CLEAR }
+  - { from: DEC-ACCURACY, to: REQ-FAIR-COMPARE }
+  - { from: DEC-ACCURACY, to: REQ-BLAME-PRECISE }
+
+  # 요구 → 시나리오
+  - { from: REQ-TURN-VISIBLE, to: SCN-RELAY-CLEAR }
+  - { from: REQ-JUDGE-WINDOW, to: SCN-RELAY-CLEAR }
+  - { from: REQ-SHARED-FATE, to: SCN-SYNC-BREAK }
+  - { from: REQ-SHARED-FATE, to: SCN-COOP-EARLY-RELEASE }
+  - { from: REQ-NOTE-KIND-CLEAR, to: SCN-MASH-FILL }
+  - { from: REQ-FAIR-COMPARE, to: SCN-UNEVEN-CHART }
+  - { from: REQ-BLAME-PRECISE, to: SCN-SYNC-BREAK }
+  - { from: REQ-BLAME-PRECISE, to: SCN-COOP-EARLY-RELEASE }
+
+  # 시나리오 → 테스트
+  - { from: SCN-RELAY-CLEAR, to: TEST-RELAY-ROTATION }
+  - { from: SCN-RELAY-CLEAR, to: TEST-JUDGE-PERFECT }
+  - { from: SCN-RELAY-CLEAR, to: TEST-JUDGE-WRONG-MISS }
+  - { from: SCN-SYNC-BREAK, to: TEST-SYNC-PARTIAL }
+  - { from: SCN-SYNC-BREAK, to: TEST-BLAME-SYNC }
+  - { from: SCN-COOP-EARLY-RELEASE, to: TEST-COOP-HOLD }
+  - { from: SCN-COOP-EARLY-RELEASE, to: TEST-BLAME-COOP }
+  - { from: SCN-MASH-FILL, to: TEST-MASH-FILL }
+  - { from: SCN-UNEVEN-CHART, to: TEST-CHART-UNEVEN }
+  - { from: SCN-UNEVEN-CHART, to: TEST-WIN-BY-ACCURACY }
+
+  # 테스트 → 증거
+  - { from: TEST-RELAY-ROTATION, to: EVD-SUITE }
+  - { from: TEST-JUDGE-PERFECT, to: EVD-SUITE }
+  - { from: TEST-JUDGE-WRONG-MISS, to: EVD-SUITE }
+  - { from: TEST-SYNC-PARTIAL, to: EVD-SUITE }
+  - { from: TEST-COOP-HOLD, to: EVD-SUITE }
+  - { from: TEST-CHART-UNEVEN, to: EVD-SUITE }
+  - { from: TEST-WIN-BY-ACCURACY, to: EVD-SUITE }
+  - { from: TEST-BLAME-SYNC, to: EVD-SUITE }
+  - { from: TEST-BLAME-COOP, to: EVD-SUITE }
+  - { from: TEST-MASH-FILL, to: EVD-PLAYTEST-MASH }  # 규칙대로 동작함은 테스트, 칠 만한지는 플레이테스트
+  - { from: TEST-MASH-FILL, to: EVD-SUITE }
+  - { from: CON-001, to: EVD-BUILD }                 # 컨셉이 실제로 빌드되어 시연 가능함
+
+  # ── 모방(사라지는 선) 사슬 — MIM 계열 ──
+  - { from: THEME-MIMICRY, to: CON-002 }
+
+  - { from: CON-002, to: DEC-MIM-THEME }
+  - { from: CON-002, to: DEC-MIM-DECAY-RELAY }
+  - { from: CON-002, to: DEC-MIM-THREE-SCORES }
+  - { from: CON-002, to: DEC-MIM-IOU-DILATE }
+  - { from: CON-002, to: DEC-MIM-NO-TRACE }
+  - { from: CON-002, to: DEC-MIM-SLICE-SPLIT }
+
+  - { from: DEC-MIM-THREE-SCORES, to: REQ-MIM-BLAME-LAYER }
+  - { from: DEC-MIM-DECAY-RELAY, to: REQ-MIM-BLAME-LAYER }
+  - { from: DEC-MIM-DECAY-RELAY, to: REQ-MIM-RELAY-ONLY }
+  - { from: DEC-MIM-NO-TRACE, to: REQ-MIM-NO-TRACE }
+  - { from: DEC-MIM-THEME, to: REQ-MIM-NO-ASSETS }
+
+  - { from: REQ-MIM-BLAME-LAYER, to: SCN-MIM-RELAY-FAIL }
+  - { from: REQ-MIM-BLAME-LAYER, to: SCN-MIM-DRAW-FAIL }
+  - { from: REQ-MIM-RELAY-ONLY, to: SCN-MIM-RELAY-FAIL }
+  - { from: REQ-MIM-RELAY-ONLY, to: SCN-MIM-BURST }
+  - { from: REQ-MIM-NO-TRACE, to: SCN-MIM-DRAW-FAIL }
+  - { from: REQ-MIM-NO-ASSETS, to: SCN-MIM-DRAW-FAIL }
+
+  - { from: SCN-MIM-DRAW-FAIL, to: TEST-MIM-TARGET-SEED }
+  - { from: SCN-MIM-DRAW-FAIL, to: TEST-MIM-TARGET-BOUND }
+  - { from: SCN-MIM-DRAW-FAIL, to: TEST-MIM-IOU-MONOTONE }
+  - { from: SCN-MIM-RELAY-FAIL, to: TEST-MIM-IOU-IDENTITY }
+  - { from: SCN-MIM-RELAY-FAIL, to: TEST-MIM-TTL }
+  - { from: SCN-MIM-BURST, to: TEST-MIM-RELAY-WINDOW }
+
+  - { from: TEST-MIM-TARGET-SEED, to: EVD-SUITE }
+  - { from: TEST-MIM-TARGET-BOUND, to: EVD-SUITE }
+  - { from: TEST-MIM-IOU-IDENTITY, to: EVD-SUITE }
+  - { from: TEST-MIM-IOU-MONOTONE, to: EVD-SUITE }
+  - { from: TEST-MIM-TTL, to: EVD-SUITE }
+  - { from: TEST-MIM-RELAY-WINDOW, to: EVD-SUITE }
+  - { from: CON-002, to: EVD-BUILD }
+
+  # ── 떠넘기기 사슬 — PSH 계열 ──
+  - { from: THEME-PUSHLUCK, to: CON-003 }
+  - { from: CON-002, to: DEC-MIM-CANCEL }          # 취소 판단도 사슬에 남긴다
+  - { from: DEC-MIM-CANCEL, to: CON-003 }          # 실패 원인이 다음 컨셉의 설계 근거가 됐다
+
+  - { from: CON-003, to: DEC-PSH-THEME }
+  - { from: CON-003, to: DEC-PSH-NO-COLLAPSE }
+  - { from: CON-003, to: DEC-PSH-NO-LIVES }
+  - { from: CON-003, to: DEC-PSH-POT-ROUND }
+  - { from: CON-003, to: DEC-PSH-RANGE-ONLY }
+  - { from: CON-003, to: DEC-PSH-BLAME-3 }
+
+  - { from: DEC-PSH-NO-COLLAPSE, to: REQ-PSH-MUST-ROLL }
+  - { from: DEC-PSH-NO-COLLAPSE, to: REQ-PSH-GAUGE-KEEPS }
+  - { from: DEC-PSH-RANGE-ONLY, to: REQ-PSH-RISK-VISIBLE }
+  - { from: DEC-PSH-BLAME-3, to: REQ-PSH-BLAME-NAMED }
+  - { from: DEC-PSH-NO-LIVES, to: SCN-PSH-COMEBACK }
+  - { from: DEC-PSH-POT-ROUND, to: SCN-PSH-COMEBACK }
+
+  - { from: REQ-PSH-MUST-ROLL, to: SCN-PSH-PASS-BOOM }
+  - { from: REQ-PSH-GAUGE-KEEPS, to: SCN-PSH-PASS-BOOM }
+  - { from: REQ-PSH-BLAME-NAMED, to: SCN-PSH-GREED-BOOM }
+  - { from: REQ-PSH-BLAME-NAMED, to: SCN-PSH-PASS-BOOM }
+  - { from: REQ-PSH-RISK-VISIBLE, to: SCN-PSH-GREED-BOOM }
+
+  - { from: SCN-PSH-PASS-BOOM, to: TEST-PSH-MUST-ROLL }
+  - { from: SCN-PSH-PASS-BOOM, to: TEST-PSH-PASS-KEEPS }
+  - { from: SCN-PSH-PASS-BOOM, to: TEST-PSH-BLAME }
+  - { from: SCN-PSH-GREED-BOOM, to: TEST-PSH-BLAME }
+  - { from: SCN-PSH-GREED-BOOM, to: TEST-PSH-GAUGE-POT }
+  - { from: SCN-PSH-COMEBACK, to: TEST-PSH-BOOM-SETTLE }
+  - { from: SCN-PSH-COMEBACK, to: TEST-PSH-WIN }
+
+  - { from: TEST-PSH-MUST-ROLL, to: EVD-SUITE }
+  - { from: TEST-PSH-GAUGE-POT, to: EVD-SUITE }
+  - { from: TEST-PSH-PASS-KEEPS, to: EVD-SUITE }
+  - { from: TEST-PSH-BOOM-SETTLE, to: EVD-SUITE }
+  - { from: TEST-PSH-BLAME, to: EVD-SUITE }
+  - { from: TEST-PSH-DETERMINISM, to: EVD-SUITE }
+  - { from: TEST-PSH-WIN, to: EVD-SUITE }
+  - { from: CON-003, to: EVD-BUILD }
+

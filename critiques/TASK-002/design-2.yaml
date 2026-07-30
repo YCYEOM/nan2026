@@ -1,0 +1,113 @@
+critic: design
+task_id: TASK-002
+iteration: 2
+no_issues_found: false
+
+# design-1 의 8건에 대한 재검증. TASK-004(네온 시그니처 적용) 이후 상태다.
+# 독립성 한계는 iteration 1 과 같다 — 구현과 같은 컨텍스트에서 실행됐다.
+# 해소된 항목은 findings 에서 뺐다. 아래는 남았거나 새로 생긴 것이다.
+#
+# 해소됨(4건):
+#   - high  메뉴 hover 의 P1 색 → C.accent (src/scenes/menu.ts:54)
+#   - med   팀 정확도 모수 병기 → HUD `92%(29/32)`, 종료 `판정한 비트 29/32`
+#   - med   rgb()/rgba() 리터럴 7곳 → withAlpha()/C.scrim. src/scenes 리터럴 0건
+#   - med   C.player[2] ↔ C.success 충돌 → 플레이어 색 2개로 축소, 확장 제약을 DESIGN.md 에 명시
+#
+# 부분 해소(1건):
+#   - low   대비. C.bg 교체로 전반 상승(textMuted 7.35→9.18, P1 6.69→13.03, danger 4.65→6.28).
+#           C.textFaint 는 3.16→4.13 으로 올랐으나 여전히 작은 텍스트 AA 미달 → 아래 유지.
+
+findings:
+  - severity: low
+    confidence: confirmed
+    category: design
+    evidence:
+      file: src/ui/tokens.ts
+      location: "C.textFaint '#7A6A96' — C.bg 대비 4.13"
+    description: >-
+      C.textFaint 가 작은 텍스트 AA 기준(4.5)에 여전히 미달한다. 이전 3.16 에서
+      개선됐지만 기준을 넘지는 못했다. DESIGN.md 에 "판단에 필요한 정보에 쓰지 않는다"로
+      제약을 걸어두었을 뿐 값 자체는 미달이다.
+    impact: >-
+      power.ts 의 쿨다운 표기와 생략 표기("…외 N회")가 이 색이다. 시연 환경 조명에서
+      읽히지 않을 수 있다. 규칙으로 용도를 제한했으므로 판단을 막지는 않는다.
+    verification: >-
+      WCAG 2.1 상대휘도 계산. #7A6A96 on #0A0612 = 4.13.
+    suggested_fix: >-
+      #8B7BA8 수준으로 한 단계 밝히면 4.5 를 넘긴다. 다만 textMuted(9.18)와의 위계가
+      좁아지므로 두 토큰의 간격을 함께 조정해야 한다.
+
+  - severity: low
+    confidence: likely
+    category: design
+    evidence:
+      file: src/scenes/rhythm.ts
+      location: "판정선 glow(turnColor, 18) · 노트 glow(COLORS[owner], 16) · 정확도 glow(accColor, 20)"
+    description: >-
+      shadowBlur 를 쓰는 지점이 프레임마다 여러 번이다. 노트는 화면에 최대 수 개가
+      동시에 있고 각각 glow 를 켠다. 캔버스 그림자는 비용이 큰 편이다.
+    impact: >-
+      저사양 시연 장비에서 프레임이 떨어지면 리듬게임 특성상 판정 체감이 직접 나빠진다.
+      현재 측정하지 않았으므로 문제가 있다고 단정할 수 없다.
+    verification: >-
+      스테이지 4(126bpm)에서 노트 밀도가 높은 구간의 프레임을 확인한다.
+      DevTools Performance 또는 harness 의 dt 로그.
+    suggested_fix: >-
+      느리면 노트 glow 를 현재 비트(cur)에만 켜고 나머지는 링만 그린다.
+      측정 전에는 바꾸지 않는다.
+
+  - severity: note
+    confidence: confirmed
+    category: design
+    evidence:
+      file: index.html
+      location: "canvas box-shadow rgba(255,46,151,.18) / rgba(0,229,255,.10)"
+    description: >-
+      CSS 는 tokens.ts 를 import 할 수 없어 시그니처 색을 rgba 로 복제했다.
+      DESIGN.md Do not 의 "rgb()/rgba() 리터럴 금지"는 씬 코드 규칙이지만,
+      토큰이 바뀌면 여기가 따라오지 않는 문제는 동일하다.
+    impact: >-
+      시그니처 색을 조정하면 캔버스 외곽 글로우만 옛 색으로 남는다. 주석으로 출처를
+      적어두었으나 기계가 잡아주지 않는다.
+    verification: >-
+      tokens.ts 의 C.sig 를 바꾸고 index.html 이 따라가는지 확인 — 따라가지 않는다.
+    suggested_fix: >-
+      빌드 시 tokens.ts 에서 CSS 변수를 생성하거나, 외곽 글로우를 캔버스 내부 렌더링으로
+      옮긴다. 지금은 값 3곳(body/canvas 배경, border, box-shadow)뿐이라 주석 유지도 선택지다.
+
+  - severity: note
+    confidence: confirmed
+    category: design
+    evidence:
+      file: DESIGN.md
+      location: "Interaction states — focus / Motion — prefers-reduced-motion"
+    description: >-
+      iteration 1 에서 지적한 두 MISSING 이 그대로다. TASK-004 범위에서 제외했다.
+    impact: >-
+      메뉴를 키보드로만 조작할 때 현재 항목을 알 수 없다. 화면 흔들림(미스 8px)에
+      대한 저감 수단이 없다.
+    verification: >-
+      메뉴에서 마우스를 치우고 숫자키만으로 조작. 연속 미스로 흔들림 확인.
+    suggested_fix: >-
+      메뉴에 선택 인덱스와 방향키 이동을 추가. 흔들림·파티클 계수를 상수 하나로 묶고
+      prefers-reduced-motion 이면 0 으로 만든다.
+
+  - severity: note
+    confidence: speculative
+    category: design
+    evidence:
+      file: src/ui/tokens.ts
+      location: "C.sigEnd '#00E5FF' === C.player[0]"
+    description: >-
+      시그니처 그라데이션의 끝과 P1 색이 같은 값이다. 장식 전용이라는 규칙으로
+      원칙 1 위반을 피했지만, 화면에 레인 테두리(그라데이션)와 P1 노트가 동시에
+      보일 때 사이언이 두 의미로 쓰인다.
+    impact: >-
+      "지금 P1 차례인가"의 판독을 흐릴 수 있다. 판정선이 담당 색으로 빛나므로
+      주된 신호는 유지되지만, 규칙으로 막은 것이지 색 체계로 막은 것은 아니다.
+    verification: >-
+      P2 차례일 때 화면을 보고 사이언 요소(레인 테두리)가 P1 을 연상시키는지 확인.
+      사람 판단이 필요하다.
+    suggested_fix: >-
+      그라데이션 끝을 P1 과 구분되는 값(예 보라 계열)으로 바꾸면 규칙에 기대지 않아도 된다.
+      시그니처의 인상이 바뀌므로 사용자 판단 대상이다.
