@@ -3,6 +3,8 @@
 // 차단기 트립 → 전원 다 나감 + 누적 작업 세트백. 표시 부하는 '지연'(HiddenInfo)이라
 // 누가 넘겼는지 즉시 안 보임 = 고의/실수 구분 불가.
 
+import { rng } from "../kits/rng";
+
 export interface Machine {
   on: boolean; draw: number; output: number; owner: 0 | 1;
   volatile?: boolean;          // 불안정: 가끔 draw 급등
@@ -53,15 +55,15 @@ export class PowerGrid {
   event: EventKind | null = null; // 진행 중 이벤트
   eventTimer = 0;
   private nextEventAt: number;
-  private rngState: number;
+  private rnd: () => number;
   private cool = 0;
 
   constructor(readonly machines: Machine[], readonly o: GridOpts) {
-    this.rngState = (o.seed ?? 1) >>> 0 || 1;
+    this.rnd = rng(o.seed ?? 1);
     this.nextEventAt = o.seed !== undefined ? EVENT.INTERVAL : Infinity;
   }
 
-  private rand() { this.rngState = (this.rngState * 1664525 + 1013904223) >>> 0; return this.rngState / 0xffffffff; }
+  private rand() { return this.rnd(); }
 
   private draw1(m: Machine) { return m.draw + (m.spiking ? VOLATILE.SPIKE_AMT : 0); } // 스파이크 반영 실효 draw
   load() { return this.machines.reduce((s, m) => s + (m.on ? this.draw1(m) : 0), 0); }

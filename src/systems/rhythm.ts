@@ -2,6 +2,8 @@
 // 노트 종류: 탭 / 홀드(누르고 유지) / 동시(전원 탭) / 협동홀드(전원 같이 길게) / 연타(한 노트 여러 번).
 // 모드: team(공유 콤보·생명 + 동시·협동) / solo(각자 점수, 동시류 비활성).
 
+import { rng } from "../kits/rng";
+
 // "hold"=홀드 유지 중, "mash"=연타 채우는 중. 연타 노트는 hold 필드를 창 길이로 재사용하므로
 // result 까지 공유하면 UI가 연타에 "홀드 유지"를 띄운다 → 별도 값으로 분리.
 export type Result = "perfect" | "good" | "miss" | "early" | "wrong" | "sync" | "hold" | "mash";
@@ -60,8 +62,7 @@ export class RhythmEngine {
         chart.push({ t: this.o.leadIn + k * iv, owner: team && sync > 0 && (k + 1) % sync === 0 ? -1 : k % this.o.players, hold: 0, mash: 0, swap: false, lane: 0 });
       return chart;
     }
-    let s = (this.o.seed >>> 0) || 1;
-    const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 0xffffffff;
+    const rnd = rng(this.o.seed);
     const gaps = [1, 1, 1, 1.5, 2];
     let t = this.o.leadIn;
     for (let k = 0; k < this.o.beats; k++) {

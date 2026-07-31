@@ -1,0 +1,54 @@
+{
+  "task_id": "TASK-011",
+  "summary_of_changes": "`index.html` 의 `#hud` 를 `position: fixed; top:8px; left:8px` 에서 문서 흐름 안(`max-width: 640px; margin: 8px auto; min-height: 63px`)으로 되돌리고 캔버스에 아래 여백(24px)을 줬다. `DESIGN.md` Layout 절을 실제 구조에 맞게 고쳤다.",
+  "why": "사용자가 스크린샷을 보내줬고 겹침이 **캔버스 밖**에 있었다 — HUD 글자가 캔버스 안 제목('떠넘기기')과 점수판('P2 0')을 덮고 있었다. `position: fixed` 라 HUD 가 레이아웃 공간을 안 차지해서 캔버스가 페이지 맨 위에서 시작했고, 폭 제한이 없어 가운데 정렬된 캔버스를 가로질렀다. 캔버스 안쪽은 TASK-010 으로 이미 정상이었다.",
+  "files_changed": ["index.html", "DESIGN.md", "docs/DECISIONS.md", "tasks/TASK-011.md"],
+  "models_used": [
+    { "role": "worker", "alias": "auto", "actual_model": "claude-opus-5[1m]", "followed_recommendation": false }
+  ],
+  "verification": {
+    "evaluations_run": [
+      { "name": "스크린샷 판독 — 겹침 위치가 캔버스 밖 HUD 임을 확인", "level": 3, "status": "pass" },
+      { "name": "npm run build (tsc + vite)", "level": 1, "status": "pass" },
+      { "name": "npm test (139개 무영향 — CSS 만 바꿨다)", "level": 2, "status": "pass" },
+      { "name": "bass design check (3/3) · protect verify (5/5)", "level": 1, "status": "pass" }
+    ],
+    "not_verified": [
+      "**고친 결과를 화면으로 확인하지 않았다.** 원인은 스크린샷으로 봤지만 수정 후 화면은 안 봤다.",
+      "`min-height: 63px`(3줄)이 가장 긴 HUD(리듬)를 담는지 실측하지 않았다. 넘치면 캔버스가 다시 밀리고, 남으면 빈 공간이 뜬다.",
+      "창 폭을 좁혔을 때 HUD 가 640px 아래로 줄면서 줄 수가 늘어나는지. 좁은 창에서는 캔버스도 잘리므로 원래 대응 밖이지만 확인은 안 했다.",
+      "HUD 가 캔버스 위에 붙은 배치가 어색한지. 원래는 화면 좌상단에 떠 있었다."
+    ]
+  },
+  "critic_findings": { "total": 0, "open_high_or_medium": 0 },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다.",
+    "HUD 문자열이 여전히 길다 — 떠넘기기가 약 110자, 리듬은 더 길다. 2~3줄로 접히는 것은 그대로이고 내용을 줄이는 것은 별개 판단으로 남겼다.",
+    "캔버스 제목과 HUD 가 게임 이름을 **둘 다** 적는다('떠넘기기'가 두 번). 정보 중복이지만 이번 범위 밖이다.",
+    "`index.html` 의 `rgba` 리터럴이 `tokens.ts` 를 안 따라오는 문제는 그대로다(`critiques/TASK-002/design-2.yaml` note).",
+    "이 페이지 레이아웃에는 자동 테스트가 없다. CSS 라 `npm test` 가 안 잡는다 — 다음에 깨져도 스크린샷 전에는 모른다."
+  ],
+  "out_of_scope_findings": [
+    "HUD 정보 설계 — 게임 이름 중복, 길이, 무엇을 캔버스 안/밖에 둘지가 정리되지 않았다.",
+    "다섯 게임의 HUD 길이가 제각각이라 3줄 고정이 어떤 게임엔 남고 어떤 게임엔 모자랄 수 있다.",
+    "작업 10개가 `HUMAN_REVIEW` 다 — PSH-001~003, ZRO-001~003, TASK-008~011."
+  ],
+  "docs_updated": { "needed": true, "updated": ["DESIGN.md", "docs/DECISIONS.md"] },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "겹침을 캔버스 안에서만 찾았다. 실제 원인은 캔버스 **밖** DOM 이었고, 좌표 추출도 테스트도 캔버스 좌표계만 봐서 원리적으로 못 잡는 자리였다 — 검사 범위가 문제의 범위와 다르면 아무리 정밀해도 안 잡힌다.",
+      "스크린샷 한 장이 계산 여러 번을 이겼다. TASK-010 에서 좌표를 뽑고 테스트까지 붙였지만 진짜 증상은 못 봤고, 화면을 보자마자 5분 만에 원인이 나왔다.",
+      "`position: fixed` 는 '자리를 안 차지한다'가 본질이다. 위치만 고치려 하면 창 크기에 따라 다시 겹친다 — 흐름 안으로 되돌리는 것이 근본이다.",
+      "CSS 는 테스트 그물 밖이다. 139개가 전부 통과하는 동안 화면은 깨져 있었다."
+    ]
+  },
+  "rollback": {
+    "method": "`index.html` 의 `#hud` 를 `position: fixed; top: 8px; left: 8px; font-size: 14px; line-height: 1.5;` 로 되돌리고 `max-width`·`margin`·`padding`·`min-height` 와 주석을 지운다. `canvas` 의 `margin: 0 auto 24px` 를 `margin: 0 auto` 로 되돌린다. `DESIGN.md` Layout 절을 'HUD만 캔버스 밖 DOM(#hud)이고 좌상단 고정.' 한 줄로 되돌리고 DECISIONS 07-30 해당 행을 제거한다. 되돌리면 HUD 가 다시 캔버스를 덮는다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": true,
+    "environment": "vite dev server :5173. 사용자가 보낸 스크린샷으로 **증상**을 확인했다 — 수정 후 화면은 아직 안 봤다.",
+    "notes": "이 저장소에서 처음으로 실제 화면을 근거로 고친 작업이다. 스크린샷에서 HUD 가 캔버스 제목과 점수판을 덮는 것을 직접 확인했고, 같은 스크린샷에서 캔버스 안쪽(배너·차례 줄·심지·버튼)은 TASK-010 수정이 제대로 먹어 안 겹치는 것도 확인했다. 다만 **이번 수정의 결과 화면은 보지 않았다** — 원인 확인만 시각적이고 검증은 아직이다."
+  }
+}

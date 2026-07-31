@@ -289,8 +289,14 @@ describe("리듬 릴레이 엔진", () => {
   it("keysPerPlayer 를 안 주면 모든 노트가 lane 0 이다 (기존 동작 보존)", () => {
     const e = new RhythmEngine({ ...OPTS, seed: 3, beats: 40 });
     for (let k = 0; k < 40; k++) expect(e.laneOf(k)).toBe(0);
-    e.step(1.0);
-    expect(e.press(e.ownerOf(0)).result).toBe("perfect"); // lane 인자 없이도 그대로 동작
+    // lane 인자 없이도 그대로 동작한다. 차트 모양(탭/홀드/연타)에 묶이면 시드 수열이
+    // 바뀔 때마다 깨지므로, 평범한 탭 노트를 찾아서 검사한다.
+    let k = -1;
+    for (let i = 0; i < 40; i++) if (e.holdOf(i) === 0 && e.mashOf(i) === 0 && e.ownerOf(i) >= 0) { k = i; break; }
+    expect(k).toBeGreaterThanOrEqual(0);
+    while (e.nextBeat < k) e.step(0.05);
+    e.step(Math.max(0, e.beatTime(k) - e.clock));
+    expect(e.press(e.ownerOf(k)).result).toBe("perfect");
   });
 
   it("승패는 노트 수가 아니라 적중률로 가린다", () => {

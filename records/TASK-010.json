@@ -1,0 +1,58 @@
+{
+  "task_id": "TASK-010",
+  "summary_of_changes": "겹치는 글자 3곳을 고치고 `src/kits/layout.ts`(`textBand`·`overlaps`·`checkStack`)를 신설했다. 제로섬 미리보기 요약을 두 줄 → 한 줄로 합쳐 격자(456) 아래·캔버스(480) 안에 넣었고(`SUMMARY_Y` 468), 떠넘기기 세로를 다시 쌓았다(배너 `56,h26`→`54,h22` · 차례 줄 `92`→`96` · 주사위 `138`→`146`). 넘기기 거절 문구는 좌표 대신 `!this.boom` 조건으로 막았다. 신규 `src/layout.test.ts` 8개가 두 화면의 세로 스택을 못 박는다. 테스트 131 → 139개.",
+  "why": "사용자 지적 '글자가 겹쳐서 못 읽겠다'. 좌표를 뽑아 세로 구간을 계산하니 실재 겹침이 셋 있었다 — 제로섬 요약이 격자 위로 4.4px 올라타고, 제로섬 이유 줄이 화면 밖으로 0.4px 잘리고, 떠넘기기 차례 줄이 규칙 배너를 7.6px 파고들었다. 원인이 매번 같다: `fillText` 의 y 는 baseline 이라 글자가 위로 `0.8×크기` 만큼 뻗는데 그걸 안 뺐다. 세션 내내 record 에 '세로 배치를 계산으로만 맞췄다'로 적어둔 것의 실제 청구서다.",
+  "files_changed": ["src/kits/layout.ts", "src/layout.test.ts", "src/scenes/zerosum.ts", "src/scenes/pushluck.ts", "docs/DECISIONS.md", "nan/trace.yaml", "tasks/TASK-010.md"],
+  "models_used": [
+    { "role": "worker", "alias": "auto", "actual_model": "claude-opus-5[1m]", "followed_recommendation": false }
+  ],
+  "verification": {
+    "evaluations_run": [
+      { "name": "npm test (139개 — 신규 layout 8개, 기존 131개 무영향)", "level": 2, "status": "pass" },
+      { "name": "좌표 재추출 — 고친 두 화면에서 실재 겹침 0건 (남은 경고는 전부 오탐, 아래 설명)", "level": 2, "status": "pass" },
+      { "name": "npm run build (tsc + vite)", "level": 1, "status": "pass" },
+      { "name": "bass design check (3/3) · protect verify (5/5) · trace validate", "level": 1, "status": "pass" },
+      { "name": "grep 색·폰트 리터럴 잔존 0건 (두 씬)", "level": 1, "status": "pass" }
+    ],
+    "not_verified": [
+      "**실제로 겹침이 사라졌는지 눈으로 안 봤다.** 계산으로 고치고 계산으로 검산했다 — 애초에 그게 문제를 만든 방식이다.",
+      "글자 세로 비율 `0.8 / 0.2` 를 근사로 썼다. 브라우저 `measureText` 로 재지 않았으므로 실제 폰트에서 다를 수 있다.",
+      "**가로 겹침은 검사하지 않았다.** 이번 검사는 세로만 봤다. 제로섬 제목 vs 차례 줄은 손으로 폭을 추정해(제목 82까지, 차례 줄 139부터) 안 겹친다고 판단했을 뿐이다.",
+      "제로섬 요약 한 줄이 길어졌다 — `9칸을 뺏는다 · 최대 25칸 · 판 밖 −9 · 내 칸 −7`. 640px 안에 들어간다고 추정만 했다.",
+      "떠넘기기가 다시 쌓인 뒤 답답한지. 차례 줄과 주사위 사이 여유가 11px 뿐이다.",
+      "취소된 모방 게임의 배치는 손대지 않았다. 빌드에는 들어 있다."
+    ]
+  },
+  "critic_findings": { "total": 0, "open_high_or_medium": 0 },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다. `critic_findings` 의 0 은 '문제 없음'이 아니라 '미실행'이다.",
+    "좌표 추출기는 **조건 분기·`translate` 변환·가로 정렬을 못 본다.** 그래서 남은 경고 5건이 전부 오탐이다 — 제로섬 제목/차례 줄(가로 분리), 제로섬 첫 수 안내/방금 한 일(`moves===0` 상호배타), 떠넘기기 `lastFaces`(`translate(DIE)` 안이라 실제 y 164), 떠넘기기 거절/터짐(방금 조건으로 막음), 떠넘기기 종료 안내/터짐(scrim 이 덮는다). 자동 검사로 승격하려면 이 셋을 모델링해야 한다.",
+    "테스트가 씬의 **일부 좌표만** 검증한다. `SUMMARY_Y`·`BANNER`·`TURN_Y` 만 export 했고 나머지 baseline 은 여전히 인라인 리터럴이라 테스트 밖이다.",
+    "처음 쓴 테스트가 세로만 보고 제목과 점수판을 한 스택에 세워 오탐을 냈다. 가로 분리를 따로 검사하도록 고쳤지만, 그 분리 자체는 `TITLE_RIGHT = 96` 이라는 손으로 적은 상수에 기대고 있다.",
+    "`0.8 / 0.2` 비율이 `kits/layout` 한 곳에 있지만 근사값이라는 사실은 그대로다."
+  ],
+  "out_of_scope_findings": [
+    "다른 씬(리듬·전력망·모방)은 검사만 하고 안 고쳤다. 추출 결과 실재 겹침은 없어 보이지만 같은 방식으로 확인한 것이라 확신은 아니다.",
+    "가로 겹침 검사가 없다. 세로만 막았으므로 좌우로 긴 문구가 늘어나면 다시 깨진다.",
+    "`kits/` 가 이제 `rng`·`layout` 두 개가 실사용 중이고 `dragdrop`·`grid` 는 여전히 0게임이다.",
+    "작업 9개가 `HUMAN_REVIEW` 다 — PSH-001~003, ZRO-001~003, TASK-008~010."
+  ],
+  "docs_updated": { "needed": true, "updated": ["docs/DECISIONS.md", "nan/trace.yaml"] },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "좌표를 눈으로 배치하면 반드시 틀린다. baseline 이 글자의 아래쪽이라는 것을 알면서도 세 곳에서 위로 뻗는 높이를 안 뺐다 — 아는 것과 매번 계산에 넣는 것은 별개다. 계산을 함수 하나로 모아야 안 틀린다.",
+      "겹침을 찾을 때는 세로만 보면 오탐이 난다. 첫 테스트가 제목과 점수판을 한 스택에 세워 '겹친다'고 했지만 가로가 분리돼 있었다 — 2차원 배치를 1차원으로 줄이면 없는 문제를 만든다.",
+      "자동 검사에도 사각지대가 있다. 좌표 추출기가 조건 분기·좌표 변환·정렬을 못 봐서 경고 5건이 오탐이었다 — 도구가 잡은 것을 그대로 믿으면 멀쩡한 것을 고치게 된다.",
+      "'화면을 안 봤다'를 기록에 계속 적어두면 청구서가 언제 오는지 알 수 있다. 이번 지적은 놀랍지 않았고 어디를 볼지도 이미 적혀 있었다."
+    ]
+  },
+  "rollback": {
+    "method": "`src/kits/layout.ts` 와 `src/layout.test.ts` 를 삭제한다. `src/scenes/zerosum.ts` 에서 `SUMMARY_Y`·`BOARD_BOTTOM` export 를 지우고 요약을 두 줄(baseline 466 F.lg + 478 F.xs, 기본 안내 470 F.md)로 되돌린다. `src/scenes/pushluck.ts` 에서 `BANNER`·`TURN_Y` export 를 지우고 배너를 `fillRect(140, 56, 360, 26)`·텍스트 baseline 70, 차례 줄 baseline 92, `DIE.y` 138 로 되돌리고 거절 문구의 `&& !this.boom` 을 뺀다. 문서는 DECISIONS 07-30 4행과 trace 의 DEC-TEXT-BAND·REQ-TEXT-NO-OVERLAP·SCN-TEXT-CLASH·TEST-TEXT-* 와 링크를 제거하고 EVD-SUITE 를 139→131 로 되돌린다. 되돌리면 겹침 셋이 복원된다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": false,
+    "environment": "vite dev server :5173 실행 중, dist 갱신됨(69.64 kB). 사람이 화면을 보지 않았다.",
+    "notes": "겹침을 고친 작업인데 **고친 결과를 눈으로 확인하지 않았다** — 계산으로 고치고 계산으로 검산했고, 애초에 그 방식이 문제를 만들었다. 글자 세로 비율 0.8/0.2 는 근사이고 `measureText` 로 재지 않았다. 가로 겹침은 아예 검사하지 않았다. 시각적 검증 완료로 표현하면 안 된다."
+  }
+}

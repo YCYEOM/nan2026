@@ -8,9 +8,16 @@
       /* 값의 출처는 src/ui/tokens.ts (C.bg / C.text / C.sig / C.sigEnd / F.sm).
          CSS 라 import 할 수 없어 복제한다 — tokens.ts 를 바꾸면 여기도 손으로 맞춰야 한다. */
       body { margin: 0; background: #0A0612; color: #fff; font-family: system-ui, sans-serif; }
-      #hud { position: fixed; top: 8px; left: 8px; font-size: 14px; line-height: 1.5; }
+      /* HUD 는 **문서 흐름 안에** 있어야 한다. position:fixed 였을 때는 자리를 안 차지해서
+         캔버스가 페이지 맨 위에서 시작했고, 폭 제한도 없어 화면을 가로질러 캔버스 안 글자를
+         덮었다(제목·점수판). 캔버스와 같은 폭·정렬로 묶어 한 덩어리로 읽히게 한다.
+         min-height 는 게임·상태마다 HUD 길이가 달라 캔버스가 세로로 튀는 것을 막는다(3줄분). */
+      #hud {
+        max-width: 640px; margin: 8px auto; padding: 0 1px;
+        font-size: 14px; line-height: 1.5; min-height: 63px;
+      }
       canvas {
-        display: block; margin: 0 auto; background: #0A0612;
+        display: block; margin: 0 auto 24px; background: #0A0612;
         border: 1px solid #3D2A5C;                 /* C.line */
         box-shadow: 0 0 40px rgba(255, 46, 151, 0.18),  /* C.sig */
                     0 0 80px rgba(0, 229, 255, 0.10);   /* C.sigEnd */

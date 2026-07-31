@@ -155,7 +155,9 @@ export class PowerScene implements Scene {
     }
 
     // 목표: 도시 구역 급전 — produced가 문턱을 넘을 때마다 소비자가 켜짐. 정전 세트백 시 다시 꺼짐.
-    const py = my + 42, CN = CITY.length, sp = mw / CN;
+    // 용량선이 막대 위아래로 4px 씩 튀어나온다(my-4 ~ my+mh+4) — 그걸 안 세서
+    // 도시 라벨이 용량선을 7.6px 파고들었다. 도시 블록을 통째로 내린다.
+    const py = my + 52, CN = CITY.length, sp = mw / CN;
     let lit = 0;
     for (let i = 0; i < CN; i++) {
       const on = this.pg.produced >= (BASE.quota * (i + 1)) / CN;
@@ -175,7 +177,7 @@ export class PowerScene implements Scene {
     if (this.pg.event && !this.pg.tripped) {
       const [label, color] = EVENT_LABEL[this.pg.event];
       ctx.fillStyle = color; ctx.font = font(F.md); ctx.textAlign = "center";
-      ctx.fillText(`${label}  (${this.pg.eventTimer.toFixed(0)}s)`, 320, py + 30);
+      ctx.fillText(`${label}  (${this.pg.eventTimer.toFixed(0)}s)`, 320, py + 44);   // 급전 점(iy+18) 아래
     }
 
     // 과부하 알람 텔레그래프 — 라인 넘긴 직후 grace 동안만.

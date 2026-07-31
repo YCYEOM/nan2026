@@ -1,0 +1,56 @@
+{
+  "task_id": "TASK-008",
+  "summary_of_changes": "메뉴 행 배치를 상수(`ROW_Y 150`·`ROW_H 70`·`GAP 16`)에서 **항목 수 유도식**으로 바꿨다. `layout(n)` 을 export 해 렌더 없이 검증 가능하게 분리하고, 그리기와 히트박스가 같은 함수를 쓰도록 묶었다. 밴드(140~470) 안에서 `rowH = clamp(⌊(밴드 − 간격총합)/n⌋, 34, 70)` 을 계산하고 블록을 세로 중앙 정렬한다. 행 안 글자 위치(번호·이름·설명)도 고정 오프셋에서 `rowH` 비율(0.62/0.45/0.78)로 바꿔 행이 낮아져도 설명이 잘리지 않게 했다. 신규 `src/menu.test.ts` 8개.",
+  "why": "게임 5종이 되면서 5번째 항목이 y 494 에 그려져 캔버스(480) 밖으로 나갔다. 히트박스가 같은 좌표를 쓰므로 마우스로는 접근조차 불가능했고 숫자키 5 로만 들어갈 수 있었다 — 사용자가 발견했다. 게임이 하나 늘 때마다 목록이 86px 씩 밀리는 구조라 다음 게임에서도 반드시 재발한다.",
+  "files_changed": ["src/scenes/menu.ts", "src/menu.test.ts", "docs/DECISIONS.md", "tasks/TASK-008.md"],
+  "models_used": [
+    { "role": "worker", "alias": "auto", "actual_model": "claude-opus-5[1m]", "followed_recommendation": false }
+  ],
+  "verification": {
+    "evaluations_run": [
+      { "name": "npm test (114개 — 신규 menu 8개, 기존 106개 무영향)", "level": 2, "status": "pass" },
+      { "name": "배치 계산 검산 — n=1~7 마지막 행 하단 ≤ 480, n=8 부터 넘침(천장 확인)", "level": 2, "status": "pass" },
+      { "name": "npm run build (tsc + vite)", "level": 1, "status": "pass" },
+      { "name": "bass design check (3/3)", "level": 2, "status": "pass" },
+      { "name": "bass nan protect verify (5/5)", "level": 1, "status": "pass" },
+      { "name": "grep hex/rgb/rgba/폰트 리터럴 잔존 0건 (src/scenes/menu.ts)", "level": 1, "status": "pass" }
+    ],
+    "not_verified": [
+      "5항목일 때 행 높이가 56px 로 줄었다. 이름(F.lg 18)과 설명(F.xs 12)이 그 높이에서 답답하지 않은지 눈으로 보지 않았다.",
+      "2항목(리듬 하위 메뉴)에서 세로 중앙 정렬이 어색하지 않은지 미확인.",
+      "hover 히트박스가 실제 마우스로 정확히 잡히는지 — 계산은 일치하지만 실기 확인은 안 했다.",
+      "7항목에서 rowH 36px 이면 설명 글자가 실질적으로 읽히는지. 계산상 들어가지만 가독성은 별개다."
+    ]
+  },
+  "critic_findings": { "total": 0, "open_high_or_medium": 0 },
+  "known_limitations": [
+    "8항목부터는 여전히 넘친다. `ponytail:` 주석으로 천장(7항목)과 해법(스크롤)을 코드에 적어뒀지만 지금은 안 만들었다 — 현재 5종이다.",
+    "숫자키가 `Digit1`~`Digit9` 라 9항목까지만 키 접근이 된다. 스크롤을 만들 때 같이 봐야 한다.",
+    "이 버그는 리허설4 레인에서 이미 겪고 교훈으로 적어둔 것과 같은 종류다(records/TASK-007.json). 교훈을 적는 것과 다른 파일에 적용하는 것은 별개였다.",
+    "렌더 자체에는 테스트가 없다. 8개는 `layout()` 의 산술만 검증하고 실제로 그려지는 모습은 증명하지 않는다.",
+    "메뉴 키보드 focus 표시는 여전히 없다(design-2.yaml note 로 계속 열려 있음). 이 작업은 배치만 고쳤다."
+  ],
+  "out_of_scope_findings": [
+    "같은 병(고정 기하 + 늘어나는 항목)이 다른 곳에도 있을 수 있다. 게임 씬들은 항목 수가 고정이라 당장은 안전해 보이지만 확인하지 않았다.",
+    "게임이 5종이 되면서 메뉴가 길어졌다 — 분류(협동/대결)나 하위 메뉴로 묶는 것이 필요해질 수 있다.",
+    "`kits/dragdrop`·`kits/grid` 미사용, 시드 LCG 4중복 — 계속 이월."
+  ],
+  "docs_updated": { "needed": true, "updated": ["docs/DECISIONS.md"] },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "교훈을 기록하는 것과 다른 파일에 적용하는 것은 별개다. 레인 기하에서 '상수로 두지 말고 유도하라'를 배우고 적어뒀는데, 같은 구조인 메뉴는 손대지 않아 게임 하나가 통째로 가려졌다 — 교훈을 적을 때 '같은 병을 앓는 다른 곳'을 함께 찾아야 한다.",
+      "그리기와 히트박스가 좌표를 따로 계산하면 언젠가 어긋난다. 여기서는 같은 함수를 써서 화면 밖으로 나갈 때 클릭도 함께 죽었다 — 덕분에 '보이는데 안 눌린다'는 더 나쁜 버그는 아니었다.",
+      "배치 계산을 순수 함수로 빼면 렌더 없이 테스트할 수 있다. `layout(n)` 하나를 export 하니 항목 수별 경계 조건 8개를 캔버스 없이 검증했다.",
+      "화면 밖으로 나간 UI 는 조용히 죽는다. 오류도 경고도 없고 테스트도 통과했다 — 사람이 볼 때까지 아무도 모른다."
+    ]
+  },
+  "rollback": {
+    "method": "`src/scenes/menu.ts` 에서 `layout()`·`Row`·`LIST_TOP`/`LIST_BOT`/`ROW_MAX`/`ROW_MIN` 을 지우고 `const OX = 120, OW = 400, ROW_Y = 150, ROW_H = 70, GAP = 16;` 과 `rowY(i) = ROW_Y + i * (ROW_H + GAP)` 로 되돌린다. `rows()` 를 지우고 `pointer`/`draw` 가 `rowY(i)` 와 고정 `ROW_H` 를 쓰게, 행 안 글자를 y+42 / y+30 / y+52 로 환원한다. `src/menu.test.ts` 를 삭제하고 DECISIONS 07-30 해당 행을 제거한다. 되돌리면 5번째 게임이 다시 화면 밖으로 나간다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": false,
+    "environment": "vite dev server :5173 실행 중, dist 갱신됨(66.06 kB). 사람이 화면을 보지 않았다.",
+    "notes": "배치 산술은 테스트와 검산으로 확인했지만(n=1~7 전부 480 이하) 실제로 그려진 화면은 보지 않았다. 5항목에서 행 높이가 70 → 56 으로 줄었으므로 글자가 답답해 보일 수 있다. 이 작업의 성공 판정은 '메뉴에서 5개가 다 보이고 마우스로 눌린다' 이고 그건 사람이 봐야 안다. 시각적 검증 완료로 표현하면 안 된다."
+  }
+}

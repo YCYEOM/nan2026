@@ -9,11 +9,13 @@ themes:
   - THEME-RHYTHM            # 리허설 주제 "리듬" — docs/GAME_SPEC.md "리허설4: 주제 리듬 (협동 릴레이)"
   - THEME-MIMICRY           # 리허설 주제 "모방" — 취소됨(MIM-001 CANCELLED). 기록으로 남긴다
   - THEME-PUSHLUCK          # 리허설 주제 "떠넘기기" — docs/GAME_SPEC.md "리허설6: 주제 떠넘기기"
+  - THEME-ZEROSUM           # 리허설 주제 "제로섬" — docs/GAME_SPEC.md "리허설7: 주제 제로섬"
 
 concepts:
   - CON-001                 # nan/concepts/CON-001.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
   - CON-002                 # nan/concepts/CON-002.yaml — 승인 87/100, 이후 CON-003 이 대체
   - CON-003                 # nan/concepts/CON-003.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
+  - CON-004                 # nan/concepts/CON-004.yaml — 승인 89/100 (approvedBy: yeomyooncheol)
 
 decisions:
   - DEC-RELAY               # DECISIONS 07-27 리허설4 채택: 라운드로빈 턴 릴레이
@@ -36,6 +38,21 @@ decisions:
   - DEC-PSH-POT-ROUND       # DECISIONS 07-30 pot 은 라운드 끝에만 확보
   - DEC-PSH-RANGE-ONLY      # DECISIONS 07-30 임계는 범위만 공개, 확률 미표시
   - DEC-PSH-BLAME-3         # DECISIONS 07-30 범인 3종을 이름으로 적는다
+  - DEC-PSH-FUSE            # DECISIONS 07-30 게이지 막대 → 타들어가는 심지, 끊긴 자리에서 폭발
+  - DEC-PSH-MODS            # DECISIONS 07-30 라운드 규칙 9종 + 판돈 상승 — 상황에 변주를 넣는다
+  - DEC-PSH-UNDO-BOOM       # DECISIONS 07-30 되돌리기는 터진 라운드를 통째로, RNG 는 안 되감는다
+  - DEC-ZRO-THEME           # DECISIONS 07-30 주제 "제로섬" 채택 — 범인 특정과 판독성이 규칙에 내장
+  - DEC-ZRO-FULL-BOARD      # DECISIONS 07-30 처음부터 꽉 찬 판. 빈 칸을 두지 않는다
+  - DEC-ZRO-PER-TURN-SCORE  # DECISIONS 07-30 매 턴 점수 — 마지막 수 특권과 초반 무의미를 함께 막는다
+  - DEC-ZRO-DIAMOND         # DECISIONS 07-30 맨해튼 반경, 클릭 전 공개 (ZRO-002 에서 모양 7종으로 대체)
+  - DEC-ZRO-SHAPES          # DECISIONS 07-30 반경 1종 → 모양 7종, 전부 점대칭(회전 불필요)
+  - DEC-ZRO-SHARED-SHAPE    # DECISIONS 07-30 한 라운드는 양쪽이 같은 모양 — 운의 비대칭이 곧 승패가 되므로
+  - DEC-ZRO-WHY-SIZE        # DECISIONS 07-30 깎인 이유를 화면에 적는다 (판 밖 −N · 내 칸 −N)
+  - DEC-ZRO-TRAIL           # DECISIONS 07-30 종료 화면 판세 궤적 + 최고의 한 수
+  - DEC-ZRO-LAYOUTS         # DECISIONS 07-30 시작 배치 5종 — 정확히 반반 + 뒤집기 대등
+  - DEC-ZRO-RNG-WARMUP      # DECISIONS 07-30 시드 LCG 워밍업 16회 (TASK-009 에서 kits/rng 로 대체)
+  - DEC-RNG-KIT             # DECISIONS 07-30 시드 난수를 kits/rng 로 뽑고 splitmix32 로 교체
+  - DEC-TEXT-BAND           # DECISIONS 07-30 fillText 의 y 는 baseline — 위로 0.8배 뻗는다. kits/layout 신설
 
 requirements:
   - REQ-TURN-VISIBLE        # 다음 비트 담당을 항상 화면에서 알 수 있다 (리드인 포함)
@@ -52,6 +69,20 @@ requirements:
   - REQ-PSH-GAUGE-KEEPS     # 넘겨도 게이지가 줄지 않는다 — 넘기기가 공격이다
   - REQ-PSH-RISK-VISIBLE    # 임계 범위가 항상 화면에 보이고 위험 구간이 음영으로 표시된다
   - REQ-PSH-BLAME-NAMED     # 터질 때 범인이 이름으로 표시된다 (숫자가 아니다)
+  - REQ-PSH-ROUND-VARIES    # 라운드마다 상황이 달라진다 — 규칙 이름이 화면에 뜬다
+  - REQ-PSH-TWO-VERBS       # 규칙이 늘어도 상시 조작은 굴리기/넘기기 2종을 넘지 않는다
+  - REQ-ZRO-INVARIANT       # 어느 시점에도 내 칸 + 네 칸 = 판 크기. 빈 칸이 없다
+  - REQ-ZRO-RADIUS-FIRST    # 반경은 클릭 전에 보여준다 — 뒤면 결정이 사라진다
+  - REQ-ZRO-PREVIEW         # 뺏을 범위를 클릭 전에 미리 보여준다
+  - REQ-ZRO-HOLD-PAYS       # 오래 들고 있는 것이 값이 된다 (매 턴 점수)
+  - REQ-ZRO-FAIR-SHAPE      # 같은 라운드의 두 사람은 같은 모양을 받는다
+  - REQ-ZRO-ONE-VERB        # 조작은 클릭 1종 — 회전이 필요한 모양을 넣지 않는다
+  - REQ-ZRO-SIZE-EXPLAINED  # 뺏는 크기가 최대에서 깎인 이유가 화면에 적힌다
+  - REQ-ZRO-START-FAIR      # 모든 시작 배치가 정확히 반반이고 양쪽이 대등하다
+  - REQ-ZRO-TRAIL-VISIBLE   # 판이 끝나면 어떻게 흘렀는지가 한 장에 남는다
+  - REQ-RNG-RANGE           # 시드 난수는 항상 [0,1) — 1.0 이면 배열 범위를 벗어난다
+  - REQ-RNG-SEED-SPREAD     # 이웃 시드가 즉시 갈라진다 — 첫 출력 하나로 추첨이 정해지는 곳이 있다
+  - REQ-TEXT-NO-OVERLAP     # 화면의 글자가 서로 겹치지 않고 캔버스 안에 들어온다
 
 scenarios:
   - SCN-RELAY-CLEAR         # 두 사람이 번갈아 32비트를 완주해 스테이지 클리어
@@ -65,6 +96,16 @@ scenarios:
   - SCN-PSH-GREED-BOOM      # 욕심내서 한 번 더 굴린 사람이 자기 손에 터진다 (self)
   - SCN-PSH-PASS-BOOM       # 넘김을 받아 강제로 굴린 사람이 터진다 (passer)
   - SCN-PSH-COMEBACK        # 쫓기는 쪽이 위험을 안고 굴려 pot 을 키운다
+  - SCN-PSH-UNDO-SAVE       # 터진 직후 되돌리기를 써서 라운드를 되살린다
+  - SCN-ZRO-BIG-SWING       # 반경 3 으로 상대가 뭉쳐둔 자리를 쳐 25칸이 한 번에 넘어간다
+  - SCN-ZRO-PINGPONG        # 같은 자리를 서로 되받아치다 이득이 줄어 다른 곳으로 옮긴다
+  - SCN-ZRO-HOLD-WIN        # 판세는 밀렸지만 오래 들고 있어 누적 점수로 이긴다
+  - SCN-ZRO-SAME-SHAPE      # 같은 모양을 받고도 놓는 자리가 갈려 승부가 난다
+  - SCN-ZRO-EDGE-WASTE      # 가장자리에 놓아 판 밖으로 잘려 손해를 본다
+  - SCN-ZRO-COMEBACK-TRAIL  # 초반에 크게 밀렸다가 후반에 뒤집은 궤적이 종료 화면에 남는다
+  - SCN-ZRO-STRIPE-START    # 줄무늬 배치라 첫 수부터 어디를 쳐도 뺏는다
+  - SCN-RNG-SAME-BOARD      # 이웃 시드가 안 갈라져 매판 같은 배치가 나온다 (교체 전 실제 증상)
+  - SCN-TEXT-CLASH          # 요약이 격자 위로 올라타고 차례 줄이 배너를 파고든다 (수정 전 실제 증상)
 
 tests:
   - TEST-RELAY-ROTATION     # rhythm.test "차례는 라운드로빈으로 돈다"
@@ -90,10 +131,26 @@ tests:
   - TEST-PSH-BLAME          # pushluck.test 범인 3종(passer/self/none)
   - TEST-PSH-DETERMINISM    # pushluck.test "같은 시드는 같은 굴림 순서" + 눈 범위
   - TEST-PSH-WIN            # pushluck.test "목표 도달 시 승자 확정, 이후 무효" + 임계 범위
+  - TEST-PSH-MOD-ROUND1     # pushluck.test "1라운드는 항상 기본, 2라운드부터 규칙이 붙는다"
+  - TEST-PSH-MOD-EACH       # pushluck.test 규칙별 동작 (짧은심지·안개·두배·감자·연발·눈고정)
+  - TEST-PSH-UNDO           # pushluck.test "되돌리기 — 터진 라운드를 통째로 되돌린다" + 1회 제한
+  - TEST-PSH-STAKE          # pushluck.test "3라운드마다 배수 상승" + pot 반영
+  - TEST-ZRO-INVARIANT      # zerosum.test 총합 불변 3종(초기 70:70·매 수·핑퐁 반복)
+  - TEST-ZRO-AREA           # zerosum.test 반경별 5·13·25칸 · 경계 버림 · kept 분리 · 되받아치기 감소
+  - TEST-ZRO-SCORE          # zerosum.test 매 수 점수 합 140 · 한쪽 독식 · 승패 · 턴 진행
+  - TEST-ZRO-SHAPE          # zerosum.test 모양별 칸 수 · 점대칭 · 고리 중앙 빔 · 경계 버림
+  - TEST-ZRO-SHARED         # zerosum.test "한 라운드 안에서 P1 과 P2 가 같은 모양을 쓴다"
+  - TEST-ZRO-LAYOUT         # zerosum.test 배치 5종 정확히 70:70 · 뒤집기 대등 · 불변식 유지 · 시드
+  - TEST-ZRO-TRAIL          # zerosum.test history 길이·값 일치 · 최고의 한 수
+  - TEST-RNG-RANGE          # rng.test "[0,1) 이다 — 1.0 이 나오면 배열 범위를 벗어난다"
+  - TEST-RNG-SPREAD         # rng.test "이웃 시드가 즉시 갈라진다" + 분포·시드0
+  - TEST-TEXT-BAND          # layout.test textBand·overlaps·checkStack
+  - TEST-TEXT-STACK         # layout.test 제로섬·떠넘기기 세로 스택 겹침 0 · 화면 안
+  - TEST-ZRO-RADIUS         # zerosum.test 모양 사전 확정 · 라운드마다 재추첨 · 시드 결정성 · preview 일치
 
 evidence:
   - EVD-PLAYTEST-MASH       # evidence/playtest-2026-07-29-mash.md — 연타 난이도 합격(스테이지 4까지)
-  - EVD-SUITE               # npm test 72개 통과 (src/*.test.ts)
+  - EVD-SUITE               # npm test 139개 통과 (src/*.test.ts)
   - EVD-BUILD               # npm run build → dist/ (tsc + vite)
 
 links:
@@ -234,4 +291,105 @@ links:
   - { from: TEST-PSH-DETERMINISM, to: EVD-SUITE }
   - { from: TEST-PSH-WIN, to: EVD-SUITE }
   - { from: CON-003, to: EVD-BUILD }
+
+  # 떠넘기기 — 겉모습(PSH-002)과 라운드 규칙(PSH-003)
+  - { from: CON-003, to: DEC-PSH-FUSE }
+  - { from: CON-003, to: DEC-PSH-MODS }
+  - { from: DEC-PSH-MODS, to: DEC-PSH-UNDO-BOOM }
+  - { from: DEC-PSH-MODS, to: REQ-PSH-ROUND-VARIES }
+  - { from: DEC-PSH-MODS, to: REQ-PSH-TWO-VERBS }
+  - { from: DEC-PSH-FUSE, to: REQ-PSH-RISK-VISIBLE }
+  - { from: REQ-PSH-ROUND-VARIES, to: SCN-PSH-UNDO-SAVE }
+  - { from: DEC-PSH-UNDO-BOOM, to: SCN-PSH-UNDO-SAVE }
+  - { from: REQ-PSH-ROUND-VARIES, to: TEST-PSH-MOD-EACH }
+  - { from: REQ-PSH-ROUND-VARIES, to: TEST-PSH-MOD-ROUND1 }
+  - { from: SCN-PSH-UNDO-SAVE, to: TEST-PSH-UNDO }
+  - { from: SCN-PSH-COMEBACK, to: TEST-PSH-STAKE }
+  - { from: TEST-PSH-MOD-ROUND1, to: EVD-SUITE }
+  - { from: TEST-PSH-MOD-EACH, to: EVD-SUITE }
+  - { from: TEST-PSH-UNDO, to: EVD-SUITE }
+  - { from: TEST-PSH-STAKE, to: EVD-SUITE }
+
+  # ── 제로섬 사슬 — ZRO 계열 ──
+  - { from: THEME-ZEROSUM, to: CON-004 }
+  - { from: CON-004, to: DEC-ZRO-THEME }
+  - { from: CON-004, to: DEC-ZRO-FULL-BOARD }
+  - { from: CON-004, to: DEC-ZRO-PER-TURN-SCORE }
+  - { from: CON-004, to: DEC-ZRO-DIAMOND }
+
+  - { from: DEC-ZRO-FULL-BOARD, to: REQ-ZRO-INVARIANT }
+  - { from: DEC-ZRO-THEME, to: REQ-ZRO-INVARIANT }
+  - { from: DEC-ZRO-DIAMOND, to: REQ-ZRO-RADIUS-FIRST }
+  - { from: DEC-ZRO-DIAMOND, to: REQ-ZRO-PREVIEW }
+  - { from: DEC-ZRO-PER-TURN-SCORE, to: REQ-ZRO-HOLD-PAYS }
+
+  - { from: REQ-ZRO-INVARIANT, to: SCN-ZRO-BIG-SWING }
+  - { from: REQ-ZRO-INVARIANT, to: SCN-ZRO-PINGPONG }
+  - { from: REQ-ZRO-RADIUS-FIRST, to: SCN-ZRO-BIG-SWING }
+  - { from: REQ-ZRO-PREVIEW, to: SCN-ZRO-BIG-SWING }
+  - { from: REQ-ZRO-HOLD-PAYS, to: SCN-ZRO-HOLD-WIN }
+
+  - { from: SCN-ZRO-BIG-SWING, to: TEST-ZRO-AREA }
+  - { from: SCN-ZRO-BIG-SWING, to: TEST-ZRO-RADIUS }
+  - { from: SCN-ZRO-PINGPONG, to: TEST-ZRO-INVARIANT }
+  - { from: SCN-ZRO-PINGPONG, to: TEST-ZRO-AREA }
+  - { from: SCN-ZRO-HOLD-WIN, to: TEST-ZRO-SCORE }
+
+  - { from: TEST-ZRO-INVARIANT, to: EVD-SUITE }
+  - { from: TEST-ZRO-AREA, to: EVD-SUITE }
+  - { from: TEST-ZRO-SCORE, to: EVD-SUITE }
+  - { from: TEST-ZRO-RADIUS, to: EVD-SUITE }
+  - { from: CON-004, to: EVD-BUILD }
+
+  # 제로섬 — 모양 7종과 공평성 (ZRO-002)
+  - { from: CON-004, to: DEC-ZRO-SHAPES }
+  - { from: CON-004, to: DEC-ZRO-SHARED-SHAPE }
+  - { from: CON-004, to: DEC-ZRO-WHY-SIZE }
+  - { from: DEC-ZRO-SHARED-SHAPE, to: REQ-ZRO-FAIR-SHAPE }
+  - { from: DEC-ZRO-SHAPES, to: REQ-ZRO-ONE-VERB }
+  - { from: DEC-ZRO-WHY-SIZE, to: REQ-ZRO-SIZE-EXPLAINED }
+  - { from: REQ-ZRO-FAIR-SHAPE, to: SCN-ZRO-SAME-SHAPE }
+  - { from: REQ-ZRO-SIZE-EXPLAINED, to: SCN-ZRO-EDGE-WASTE }
+  - { from: REQ-ZRO-ONE-VERB, to: SCN-ZRO-SAME-SHAPE }
+  - { from: SCN-ZRO-SAME-SHAPE, to: TEST-ZRO-SHARED }
+  - { from: SCN-ZRO-SAME-SHAPE, to: TEST-ZRO-SHAPE }
+  - { from: SCN-ZRO-EDGE-WASTE, to: TEST-ZRO-SHAPE }
+  - { from: TEST-ZRO-SHAPE, to: EVD-SUITE }
+  - { from: TEST-ZRO-SHARED, to: EVD-SUITE }
+
+  # 제로섬 마감 — 궤적·배치·안내 (ZRO-003)
+  - { from: CON-004, to: DEC-ZRO-TRAIL }
+  - { from: CON-004, to: DEC-ZRO-LAYOUTS }
+  - { from: DEC-ZRO-LAYOUTS, to: DEC-ZRO-RNG-WARMUP }
+  - { from: DEC-ZRO-LAYOUTS, to: REQ-ZRO-START-FAIR }
+  - { from: DEC-ZRO-TRAIL, to: REQ-ZRO-TRAIL-VISIBLE }
+  - { from: REQ-ZRO-START-FAIR, to: SCN-ZRO-STRIPE-START }
+  - { from: REQ-ZRO-TRAIL-VISIBLE, to: SCN-ZRO-COMEBACK-TRAIL }
+  - { from: REQ-ZRO-HOLD-PAYS, to: SCN-ZRO-COMEBACK-TRAIL }
+  - { from: SCN-ZRO-STRIPE-START, to: TEST-ZRO-LAYOUT }
+  - { from: SCN-ZRO-COMEBACK-TRAIL, to: TEST-ZRO-TRAIL }
+  - { from: TEST-ZRO-LAYOUT, to: EVD-SUITE }
+  - { from: TEST-ZRO-TRAIL, to: EVD-SUITE }
+
+  # 시드 난수 키트 (TASK-009) — 게임 5종 공통 부품
+  - { from: DEC-ZRO-RNG-WARMUP, to: DEC-RNG-KIT }   # 완화 → 근본 교체
+  - { from: DEC-RNG-KIT, to: REQ-RNG-RANGE }
+  - { from: DEC-RNG-KIT, to: REQ-RNG-SEED-SPREAD }
+  - { from: REQ-RNG-SEED-SPREAD, to: SCN-RNG-SAME-BOARD }
+  - { from: REQ-ZRO-START-FAIR, to: SCN-RNG-SAME-BOARD }
+  - { from: SCN-RNG-SAME-BOARD, to: TEST-RNG-SPREAD }
+  - { from: SCN-RNG-SAME-BOARD, to: TEST-ZRO-LAYOUT }
+  - { from: REQ-RNG-RANGE, to: TEST-RNG-RANGE }
+  - { from: TEST-RNG-RANGE, to: EVD-SUITE }
+  - { from: TEST-RNG-SPREAD, to: EVD-SUITE }
+
+  # 글자 겹침 (TASK-010) — 화면 공통 부품
+  - { from: DEC-TEXT-BAND, to: REQ-TEXT-NO-OVERLAP }
+  - { from: REQ-TEXT-NO-OVERLAP, to: SCN-TEXT-CLASH }
+  - { from: REQ-ZRO-SIZE-EXPLAINED, to: SCN-TEXT-CLASH }
+  - { from: REQ-PSH-ROUND-VARIES, to: SCN-TEXT-CLASH }
+  - { from: SCN-TEXT-CLASH, to: TEST-TEXT-BAND }
+  - { from: SCN-TEXT-CLASH, to: TEST-TEXT-STACK }
+  - { from: TEST-TEXT-BAND, to: EVD-SUITE }
+  - { from: TEST-TEXT-STACK, to: EVD-SUITE }
 

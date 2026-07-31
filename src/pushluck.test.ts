@@ -1,9 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { PushLuck, PushOpts } from "./systems/pushluck";
+import { PushLuck, PushOpts, MODS, ModId } from "./systems/pushluck";
 
 // 임계값을 고정하려면 min===max 로 준다. 굴림은 시드로 결정적이다.
+// modPool 기본을 ["none"] 으로 둬 라운드 규칙이 기존 판정을 흔들지 않게 한다 —
+// 규칙별 검증은 아래 "라운드 규칙" 묶음에서 따로 한다.
 const O = (over: Partial<PushOpts> = {}): PushOpts =>
-  ({ limitMin: 20, limitMax: 45, target: 100, sides: 6, seed: 42, ...over });
+  ({ limitMin: 20, limitMax: 45, target: 100, sides: 6, seed: 42, modPool: ["none"], ...over });
+
+/** 규칙 하나만 나오게 고정한다. 1라운드는 항상 none 이므로 한 판 터뜨려 2라운드로 넘긴다. */
+const withMod = (id: ModId, over: Partial<PushOpts> = {}) => {
+  const e = new PushLuck(O({ modPool: [id], ...over }));
+  while (e.round === 1) e.roll();      // 1라운드(none)를 끝내면 2라운드부터 규칙이 붙는다
+  return e;
+};
 
 /** 터지기 전까지 굴린다. 반환값은 마지막 결과(터진 결과). */
 const rollUntilBoom = (e: PushLuck, cap = 200) => {
@@ -162,5 +171,174 @@ describe("떠넘기기 — 결정성과 승패", () => {
       expect(e.hiddenLimit).toBeLessThanOrEqual(45);
       expect(e.limitRange).toEqual([20, 45]);
     }
+  });
+});
+
+describe("떠넘기기 — 라운드 규칙", () => {
+  it("1라운드는 항상 기본, 2라운드부터 규칙이 붙는다", () => {
+    const e = new PushLuck(O({ modPool: ["short"], limitMin: 8, limitMax: 8 }));
+    expect(e.mod).toBe("none");        // 첫 판은 무엇이 기본인지 배우는 자리다
+    rollUntilBoom(e);
+    expect(e.round).toBe(2);
+    expect(e.mod).toBe("short");
+  });
+
+  it("modPool 로 뽑을 규칙을 제한할 수 있다", () => {
+    const e = new PushLuck(O({ modPool: ["fog"], limitMin: 8, limitMax: 8 }));
+    for (let i = 0; i < 5; i++) rollUntilBoom(e);
+    expect(e.mod).toBe("fog");
+  });
+
+  it("짧은 심지 — 임계 범위가 절반이다", () => {
+    const e = withMod("short");
+    expect(e.limitRange).toEqual([10, 22]);
+    expect(e.hiddenLimit).toBeGreaterThanOrEqual(10);
+    expect(e.hiddenLimit).toBeLessThanOrEqual(22);
+  });
+
+  it("안개 — 범위를 가린다고 표시되지만 값 자체는 정상이다", () => {
+    const e = withMod("fog");
+    expect(e.rangeHidden).toBe(true);
+    expect(e.limitRange).toEqual([20, 45]);   // 화면만 가리고 규칙은 그대로다
+    expect(new PushLuck(O()).rangeHidden).toBe(false);
+  });
+
+  it("두 배 — 점수만 2배, 게이지는 그대로", () => {
+    const e = withMod("double", { limitMin: 999, limitMax: 999 });
+    const g0 = e.gauge, p0 = e.pot[e.turn], who = e.turn;
+    const r = e.roll()!;
+    expect(e.gauge - g0).toBe(r.face);                        // 게이지는 눈만큼
+    expect(e.pot[who] - p0).toBe(r.face * 2 * e.stakeMult);   // 점수는 2배
+  });
+
+  it("뜨거운 감자 — 넘기면 게이지가 5 오르되 그 자체로는 안 터진다", () => {
+    const e = withMod("hotpotato", { limitMin: 999, limitMax: 999 });
+    e.roll();
+    const g = e.gauge, r = e.round;
+    expect(e.pass()).toBe(true);
+    expect(e.gauge).toBe(g + 5);
+    expect(e.round).toBe(r);           // 라운드가 안 끝났다 = 안 터졌다
+    expect(e.pot).toEqual(e.pot);      // 아무도 안 굴렸으므로 pot 변화 없음
+  });
+
+  it("뜨거운 감자로 임계를 넘겨두면 다음 굴림이 터지고 책임은 넘긴 사람에게 간다", () => {
+    const e = withMod("hotpotato", { limitMin: 6, limitMax: 6 });
+    while (e.gauge === 0) e.roll();    // 한 번 굴려 pot 을 만든다(터졌으면 라운드가 바뀐다)
+    if (e.round !== 2) return;         // 첫 굴림에 터졌으면 이 판정은 못 본다
+    if (!e.pass()) return;
+    const r = e.roll()!;
+    expect(r.boom).toBe(true);
+    expect(r.blame).toBe("passer");
+  });
+
+  it("연발 — 두 번 굴러가고, 첫 굴림에 터지면 두 번째는 안 굴린다", () => {
+    const safe = withMod("burst", { limitMin: 999, limitMax: 999 });
+    const r = safe.roll()!;
+    expect(r.faces).toHaveLength(2);
+    expect(r.face).toBe(r.faces[0] + r.faces[1]);
+    expect(safe.gauge).toBe(r.face);
+
+    const doomed = withMod("burst", { limitMin: 0, limitMax: 0 });
+    const b = doomed.roll()!;
+    expect(b.boom).toBe(true);
+    expect(b.faces).toHaveLength(1);   // 두 번째는 굴리지 않았다
+  });
+
+  it("눈 고정 — 항상 3이 나온다", () => {
+    const e = withMod("fixed", { limitMin: 999, limitMax: 999 });
+    for (let i = 0; i < 20; i++) expect(e.roll()!.faces).toEqual([3]);
+  });
+
+  it("되돌리기 — 터진 라운드를 통째로 되돌린다", () => {
+    const e = withMod("undo", { limitMin: 8, limitMax: 8 });
+    expect(e.undoLeft).toEqual([1, 1]);   // 각자 1회씩. 공용이 아니다
+    // 터지기 직전 상태를 기억해 둔다
+    let before = { gauge: e.gauge, pot: [...e.pot], score: [...e.score], round: e.round, turn: e.turn };
+    let r = e.roll()!;
+    while (!r.boom) {
+      before = { gauge: e.gauge, pot: [...e.pot], score: [...e.score], round: e.round, turn: e.turn };
+      r = e.roll()!;
+    }
+    expect(e.round).toBe(before.round + 1);   // 터져서 라운드가 넘어갔다
+    expect(e.canUndo).toBe(true);
+    expect(e.undo()).toBe(true);
+    expect(e.round).toBe(before.round);        // 라운드가 돌아왔다
+    expect(e.gauge).toBe(before.gauge);
+    expect(e.pot).toEqual(before.pot);
+    expect(e.score).toEqual(before.score);     // 상대가 확보한 점수도 되돌아왔다
+    expect(e.turn).toBe(before.turn);
+    expect(e.undoLeft[r.player]).toBe(0);      // 쓴 사람 것만 줄었다
+    expect(e.undoLeft[1 - r.player]).toBe(1);  // 상대 것은 그대로 남았다
+    expect(e.canUndo).toBe(false);
+    expect(e.undo()).toBe(false);
+  });
+
+  it("되돌리기는 각자 1회다 — 한쪽이 써도 상대 것은 남는다", () => {
+    const e = withMod("undo", { limitMin: 999, limitMax: 999 });
+    const first = e.turn;
+    e.roll();
+    expect(e.undoOwner).toBe(first);
+    expect(e.undo()).toBe(true);
+    expect(e.undoLeft[first]).toBe(0);
+    // 상대에게 차례를 넘기고 굴리면 상대는 자기 충전으로 되돌릴 수 있다
+    e.roll();
+    expect(e.pass()).toBe(true);
+    const other = e.turn;
+    expect(other).toBe(1 - first);
+    e.roll();
+    expect(e.undoOwner).toBe(other);
+    expect(e.undo()).toBe(true);
+    expect(e.undoLeft[other]).toBe(0);
+  });
+
+  it("넘기면 이전 굴림은 못 되돌린다 (창구가 닫힌다)", () => {
+    const e = withMod("undo", { limitMin: 999, limitMax: 999 });
+    e.roll();
+    expect(e.canUndo).toBe(true);
+    e.pass();
+    expect(e.canUndo).toBe(false);
+    expect(e.undoOwner).toBe(-1);
+  });
+
+  it("되돌리기 규칙이 아닌 라운드로 넘어가면 낡은 스냅샷이 되살아나지 않는다", () => {
+    // 되돌리기 라운드에서 터진 뒤 구조하지 않고 계속 굴리면 창구가 닫혀야 한다.
+    const e = withMod("undo", { limitMin: 6, limitMax: 6, modPool: ["undo", "none"] });
+    rollUntilBoom(e);
+    e.roll();                        // 새 라운드에서 한 번 굴린다 → 스냅샷이 덮인다
+    if (e.mod !== "undo") expect(e.canUndo).toBe(false);
+  });
+
+  it("되돌리기가 없는 규칙에서는 못 되돌린다", () => {
+    const e = new PushLuck(O({ limitMin: 999, limitMax: 999 }));
+    e.roll();
+    expect(e.undoLeft).toEqual([0, 0]);
+    expect(e.canUndo).toBe(false);
+    expect(e.undo()).toBe(false);
+  });
+
+  it("규칙 목록이 8종이고 id 가 중복되지 않는다", () => {
+    expect(MODS).toHaveLength(8);
+    expect(new Set(MODS.map((m) => m.id)).size).toBe(8);
+    // 넘기기 금지는 뺐다 — 결정 자체가 사라져 그 라운드에 게임이 없었다
+    expect(MODS.map((m) => m.id)).not.toContain("nopass");
+    for (const m of MODS) { expect(m.name.length).toBeGreaterThan(0); expect(m.desc.length).toBeGreaterThan(0); }
+  });
+});
+
+describe("떠넘기기 — 판돈 상승", () => {
+  it("3라운드마다 배수가 1씩 오른다", () => {
+    const e = new PushLuck(O({ limitMin: 8, limitMax: 8 }));
+    const seen: number[] = [];
+    for (let i = 0; i < 7 && !e.done; i++) { seen.push(e.stakeMult); rollUntilBoom(e); }
+    expect(seen.slice(0, 6)).toEqual([1, 1, 1, 2, 2, 2]);
+  });
+
+  it("배수가 pot 획득에 반영된다", () => {
+    const e = new PushLuck(O({ limitMin: 999, limitMax: 999 }));
+    (e as unknown as { round: number }).round = 4;   // R4 = 배수 2
+    expect(e.stakeMult).toBe(2);
+    const who = e.turn, p0 = e.pot[who];
+    const r = e.roll()!;
+    expect(e.pot[who] - p0).toBe(r.face * 2);
   });
 });

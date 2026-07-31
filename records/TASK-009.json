@@ -1,0 +1,60 @@
+{
+  "task_id": "TASK-009",
+  "summary_of_changes": "시드 난수를 `src/kits/rng.ts` 하나로 뽑고 **splitmix32** 로 교체했다. 게임 5종(`rhythm`·`mimicry`·`powergrid`·`pushluck`·`zerosum`)의 인라인 LCG 5개를 전부 제거했고(`1664525` 잔존 0건), 제로섬의 워밍업 16회 루프와 `ponytail:` 주석도 필요 없어져 지웠다. 신규 `src/rng.test.ts` 5개 — 범위 `[0,1)`·결정성·이웃 시드 분산·분포·시드 0. README 를 게임 5종과 `kits/rng` 로 갱신했다. 테스트 126 → 131개.",
+  "why": "같은 LCG 가 다섯 파일에 복사돼 있었고 결함이 두 개 드러났는데 **둘 다 복사본 수만큼 존재**했다. (1) 이웃 시드끼리 첫 출력이 거의 같아 시드 1~200 이 전부 같은 값을 줬다 — 제로섬 배치 추첨 테스트가 잡았고 ZRO-003 에서 제로섬만 워밍업으로 완화했다. (2) `rhythm`·`mimicry`·`powergrid` 가 `0xffffffff` 로 나눠 정확히 1.0 이 나올 수 있었다 — 그러면 `Math.floor(rnd()*n)` 이 `n` 을 돌려줘 리듬은 `gaps[5]`→`undefined`→비트 시각이 전부 `NaN` 이 되고 담당이 `players` 가 되어 배열 범위를 벗어난다. 확률 2^-32 라 본 적은 없지만 실재한다. 네 번 '뽑을 때가 됐다'고 기록만 하다가 코드를 네 번 복사하면 버그도 네 벌이 된다는 것이 실제로 드러났다.",
+  "files_changed": [
+    "src/kits/rng.ts", "src/rng.test.ts",
+    "src/systems/rhythm.ts", "src/systems/mimicry.ts", "src/systems/powergrid.ts",
+    "src/systems/pushluck.ts", "src/systems/zerosum.ts",
+    "src/rhythm.test.ts", "README.md", "docs/DECISIONS.md", "nan/trace.yaml", "tasks/TASK-009.md"
+  ],
+  "models_used": [
+    { "role": "worker", "alias": "auto", "actual_model": "claude-opus-5[1m]", "followed_recommendation": false }
+  ],
+  "verification": {
+    "evaluations_run": [
+      { "name": "npm test (131개 — 신규 rng 5개, 나머지 전부 통과)", "level": 2, "status": "pass" },
+      { "name": "grep 1664525 잔존 0건 (인라인 LCG 완전 제거)", "level": 1, "status": "pass" },
+      { "name": "검산 — 시드 1~200 첫 출력: 옛 LCG 고유값 1종 → splitmix32 5종, 연속중복 41(기대 39.8)", "level": 2, "status": "pass" },
+      { "name": "npm run build (tsc + vite)", "level": 1, "status": "pass" },
+      { "name": "bass design check (3/3) · bass doctor (5/5)", "level": 2, "status": "pass" },
+      { "name": "bass nan protect verify (5/5) · trace validate", "level": 1, "status": "pass" }
+    ],
+    "not_verified": [
+      "**난수가 바뀌면서 게임 체감이 달라졌는지.** 리듬 차트·전력망 이벤트·떠넘기기 굴림·제로섬 배치가 전부 다른 수열이 됐다. 규칙은 그대로지만 나오는 값이 달라졌고 사람이 쳐보지 않았다.",
+      "splitmix32 의 품질을 통계 검정으로 확인하지 않았다. 분포·연속중복·범위만 봤고 알려진 알고리즘이라는 것에 기댔다.",
+      "`powergrid` 의 `rand()` 가 이제 `this.rnd()` 를 감싸기만 한다 — 한 겹이 남았지만 호출부가 여러 곳이라 그대로 뒀다. 정리 여부는 판단 대상이다.",
+      "게임들이 여전히 앱에서 `Math.random()` 기반 시드를 쓴다. 이번 수정은 시드를 **받았을 때** 제대로 동작하게 만든 것이고, 리플레이용으로 시드를 기록·재사용하는 일은 그대로 남아 있다."
+    ]
+  },
+  "critic_findings": { "total": 0, "open_high_or_medium": 0 },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다. `critic_findings` 의 0 은 '문제 없음'이 아니라 '미실행'이다.",
+    "난수 교체로 테스트 1건이 깨졌고 원인은 **수열 의존**이었다 — `keysPerPlayer 미지정` 테스트가 0번 노트를 탭으로 가정했는데 새 수열에서 연타가 됐다. 엔진은 정상이었고 테스트를 차트 모양과 무관하게 고쳤다. 다만 '값을 조정해 덮은 것'과 '테스트를 옳게 고친 것'의 경계는 사람이 봐야 한다.",
+    "`kits/dragdrop`·`kits/grid` 는 여전히 실사용자가 없다. `rng` 가 kits 의 첫 실사용 부품이 됐다는 점에서 대비가 더 분명해졌다.",
+    "`powergrid.rand()` 가 `this.rnd()` 를 감싸는 한 겹으로 남았다."
+  ],
+  "out_of_scope_findings": [
+    "`kits/dragdrop`·`kits/grid` 삭제 판단이 이제 더 명확해졌다 — `rng` 는 5게임이 쓰는데 그 둘은 0게임이다.",
+    "게임들이 시드를 기록하지 않아 판을 재현할 수 없다. 리플레이·하이라이트 파생의 선행 조건이고 다섯 게임 전부 해당된다.",
+    "작업 8개가 `HUMAN_REVIEW` 다 — PSH-001~003, ZRO-001~003, TASK-008~009. 승인 없이 계속 쌓고 있다."
+  ],
+  "docs_updated": { "needed": true, "updated": ["README.md", "docs/DECISIONS.md", "nan/trace.yaml"] },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "복사한 코드는 버그도 복사한다. LCG 중복을 네 번 '기록만' 하고 안 뽑았더니 결함 두 개가 각각 다섯 벌이 됐다 — 중복을 기록하는 것은 고치는 것이 아니다.",
+      "복사본은 조용히 갈라진다. 다섯 개가 같은 코드인 줄 알았는데 나눗셈 상수가 `0xffffffff` 와 `0x100000000` 로 갈려 있었고, 그중 하나가 범위 밖 인덱싱을 만드는 결함이었다.",
+      "완화와 해결을 구분해서 기록해두면 나중에 되돌아올 수 있다. 제로섬 워밍업에 'ponytail: 완화지 해결이 아니다'를 적어둔 덕에 이번에 무엇을 지워야 하는지가 분명했다.",
+      "난수를 바꾸면 시드 의존 테스트가 드러난다. 131개 중 1개만 깨졌는데, 그 1개는 '차트 모양'에 묶여 있던 테스트였다 — 성질을 검사하는 테스트는 살아남고 수열을 검사하는 테스트만 깨진다."
+    ]
+  },
+  "rollback": {
+    "method": "`src/kits/rng.ts` 와 `src/rng.test.ts` 를 삭제하고 게임 5종에 각자의 인라인 LCG 를 되돌린다 — `rhythm`(buildChart 지역 변수, `/0xffffffff`), `mimicry`(makeTarget 지역 변수, `/0xffffffff`), `powergrid`(`rngState` 필드 + `rand()` 메서드, `/0xffffffff`), `pushluck`(생성자, `/0x100000000`), `zerosum`(생성자, `/0x100000000` + 워밍업 16회 루프와 ponytail 주석). 각 파일의 `import { rng }` 를 지운다. `src/rhythm.test.ts` 의 'keysPerPlayer 미지정' 테스트를 `expect(e.press(e.ownerOf(0)).result).toBe(\"perfect\")` 로 되돌린다. 문서는 README 의 kits/재현성 문구, DECISIONS 07-30 3행, trace 의 DEC-RNG-KIT·REQ-RNG-*·SCN-RNG-SAME-BOARD·TEST-RNG-* 와 링크를 제거하고 EVD-SUITE 를 131→126 으로 되돌린다. 되돌리면 결함 두 개가 다섯 벌로 복원된다. git 이 없는 저장소라 파일별 수동 환원이다."
+  },
+  "design": {
+    "rendered_verification": false,
+    "environment": "vite dev server :5173 실행 중, dist 갱신됨(69.66 kB). 화면 변경은 없다.",
+    "notes": "화면을 바꾸지 않는 작업이라 렌더 검증 대상이 아니다. 다만 **난수가 바뀌어 다섯 게임의 실제 내용물(리듬 차트·전력망 이벤트·굴림·배치)이 전부 달라졌다** — 규칙은 그대로지만 나오는 판이 다르다. 체감이 달라졌는지는 사람이 쳐봐야 안다."
+  }
+}

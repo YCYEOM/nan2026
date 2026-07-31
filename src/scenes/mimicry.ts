@@ -12,9 +12,16 @@ import { C, F, font, withAlpha, sigGradient, glow } from "../ui/tokens";
 interface Box { x: number; y: number; w: number; h: number }
 // 참조 상자와 그리기 칸의 **가로세로 비가 같아야 한다**(둘 다 4:3).
 // 다르면 정규화 좌표가 눌려서 잘 그려도 유사도가 깎인다.
-const REF: Box = { x: 16, y: 48, w: 160, h: 120 };
-const A1: Box = { x: 16, y: 180, w: 288, h: 216 };
-const A2: Box = { x: 336, y: 180, w: 288, h: 216 };
+//
+// panel() 이 라벨을 상자 바로 위(b.y - 6)에 F.sm 으로 그린다 — baseline 위로 11.2px 뻗으므로
+// **상자 위 17px 이 비어 있어야** 위 요소와 안 겹친다. 처음엔 그 여백이 없어
+// 라벨이 원본 상자를 파고들었다.
+const REF: Box = { x: 16, y: 72, w: 160, h: 120 };
+const A1: Box = { x: 16, y: 216, w: 288, h: 216 };
+const A2: Box = { x: 336, y: 216, w: 288, h: 216 };
+// 차례 안내 자리 — 원본 상자 오른쪽의 빈 공간. 좁은 틈에서 자리를 다투는 대신 비어 있는 곳을 쓴다.
+export const TURN = { x: 408, y: 130 };
+export const HINT_Y = 452, TTL_HINT_Y = 470;
 // 공개 화면 3분할 (역시 4:3)
 const R1: Box = { x: 16, y: 170, w: 192, h: 144 };
 const R2: Box = { x: 224, y: 170, w: 192, h: 144 };
@@ -195,17 +202,18 @@ export class MimicryScene implements Scene {
 
     // 남은 시간 — 막대 + 숫자. 5초 아래면 경고색
     const left = Math.max(0, DRAW_TIME - this.t), low = left <= 5;
-    ctx.fillStyle = C.slot; ctx.fillRect(336, 20, 288, 12);
+    ctx.fillStyle = C.slot; ctx.fillRect(336, 40, 288, 12);
     ctx.fillStyle = low ? C.danger : turnColor;
-    ctx.fillRect(336, 20, 288 * (left / DRAW_TIME), 12);
+    ctx.fillRect(336, 40, 288 * (left / DRAW_TIME), 12);
     ctx.fillStyle = low ? C.danger : C.textMuted; ctx.font = font(F.md);
     ctx.textAlign = "right";
-    ctx.fillText(`${left.toFixed(1)}s`, 624, 14);
+    ctx.fillText(`${left.toFixed(1)}s`, 624, 30);   // 제목과 같은 줄
 
     // 차례 안내 — 화면에서 가장 큰 글자가 누구 차례인지 말한다
+    // 원본 상자 오른쪽 빈 공간에 둔다 — 상자와 시선이 나란해져 오히려 읽기 쉽다.
     ctx.textAlign = "center"; ctx.font = font(F.lg); ctx.fillStyle = turnColor;
     glow(ctx, turnColor, 12, () => {
-      ctx.fillText(p1turn ? "▶ P1 차례 — 원본을 보고 그려라" : "▶ P2 차례 — 사라지는 선을 따라가라", 320, 168 - 4);
+      ctx.fillText(p1turn ? "▶ P1 차례 — 원본을 보고 그려라" : "▶ P2 차례 — 사라지는 선을 따라가라", TURN.x, TURN.y);
     });
 
     // 원본 참조 상자 — P1만 본다
@@ -231,10 +239,10 @@ export class MimicryScene implements Scene {
 
     // 조작 힌트
     ctx.textAlign = "center"; ctx.font = font(F.sm); ctx.fillStyle = C.textMuted;
-    ctx.fillText("드래그로 그리기 · Z 마지막 선 지우기 · 스페이스 제출 · R 처음부터", 320, 424);
+    ctx.fillText("드래그로 그리기 · Z 마지막 선 지우기 · 스페이스 제출 · R 처음부터", 320, HINT_Y);
     if (!p1turn) {
       ctx.fillStyle = C.textFaint;
-      ctx.fillText(`P1의 선은 ${STROKE_TTL}초만 보인다 — 원본은 아무도 보여주지 않는다`, 320, 444);
+      ctx.fillText(`P1의 선은 ${STROKE_TTL}초만 보인다 — 원본은 아무도 보여주지 않는다`, 320, TTL_HINT_Y);
     }
   }
 

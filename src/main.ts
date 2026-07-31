@@ -6,6 +6,7 @@ import { PowerScene } from "./scenes/power";
 import { RhythmScene } from "./scenes/rhythm";
 import { MimicryScene } from "./scenes/mimicry";
 import { PushScene } from "./scenes/pushluck";
+import { ZeroScene } from "./scenes/zerosum";
 
 // 리듬 하위 메뉴. 모드가 늘면 여기 한 줄.
 const RHYTHM_MODES: GameEntry[] = [
@@ -27,6 +28,7 @@ const GAMES: GameEntry[] = [
   },
   { name: "사라지는 선", desc: "모방 · 2인 순차 · 원본을 보고 그리면 그 선이 사라진다", make: (h) => new MimicryScene(h) },
   { name: "떠넘기기", desc: "주사위 · 2인 대결 · 터지기 전에 상대에게 밀어넣는다", make: (h) => new PushScene(h) },
+  { name: "제로섬", desc: "영토 · 2인 대결 · 내가 얻은 칸은 반드시 네가 잃은 칸이다", make: (h) => new ZeroScene(h) },
 ];
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;

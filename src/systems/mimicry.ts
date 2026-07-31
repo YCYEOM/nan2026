@@ -3,6 +3,8 @@
 // kits/grid 는 쓰지 않았다 — IoU 는 칸 집합의 교/합집합이고 Grid 는 값 맵이라
 // set/has 만 쓰게 된다. Set<number>(r*cols+c) 가 더 짧고 빠르다.
 
+import { rng } from "../kits/rng";
+
 export interface Pt { x: number; y: number }
 /** born = 그려진 시각(단계 시작 기준 초). 중계할 때 이 시각부터 TTL 동안만 보인다. */
 export interface Stroke { pts: Pt[]; born: number }
@@ -18,8 +20,7 @@ export const TARGET_COLS = 5, TARGET_ROWS = 4;
  */
 export function makeTarget(seed: number, points = 5): Pt[] {
   const total = TARGET_COLS * TARGET_ROWS, n = Math.max(2, Math.min(points, total));
-  let s = (seed >>> 0) || 1;
-  const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 0xffffffff;
+  const rnd = rng(seed);
   const idx = Array.from({ length: total }, (_, i) => i);
   for (let i = total - 1; i > 0; i--) {          // Fisher-Yates
     const j = Math.floor(rnd() * (i + 1));
