@@ -10,12 +10,16 @@ themes:
   - THEME-MIMICRY           # 리허설 주제 "모방" — 취소됨(MIM-001 CANCELLED). 기록으로 남긴다
   - THEME-PUSHLUCK          # 리허설 주제 "떠넘기기" — docs/GAME_SPEC.md "리허설6: 주제 떠넘기기"
   - THEME-ZEROSUM           # 리허설 주제 "제로섬" — docs/GAME_SPEC.md "리허설7: 주제 제로섬"
+  - THEME-CORNER            # 리허설 주제 "코너킥" — docs/GAME_SPEC.md "리허설8: 주제 코너킥"
+  - THEME-DODGE             # 리허설 주제 "총알피하기" — docs/GAME_SPEC.md "리허설9: 주제 총알피하기"
 
 concepts:
   - CON-001                 # nan/concepts/CON-001.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
   - CON-002                 # nan/concepts/CON-002.yaml — 승인 87/100, 이후 CON-003 이 대체
   - CON-003                 # nan/concepts/CON-003.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
   - CON-004                 # nan/concepts/CON-004.yaml — 승인 89/100 (approvedBy: yeomyooncheol)
+  - CON-005                 # nan/concepts/CON-005.yaml — 승인 78/100 (approvedBy: yeomyooncheol)
+  - CON-006                 # nan/concepts/CON-006.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
 
 decisions:
   - DEC-RELAY               # DECISIONS 07-27 리허설4 채택: 라운드로빈 턴 릴레이
@@ -53,6 +57,25 @@ decisions:
   - DEC-ZRO-RNG-WARMUP      # DECISIONS 07-30 시드 LCG 워밍업 16회 (TASK-009 에서 kits/rng 로 대체)
   - DEC-RNG-KIT             # DECISIONS 07-30 시드 난수를 kits/rng 로 뽑고 splitmix32 로 교체
   - DEC-TEXT-BAND           # DECISIONS 07-30 fillText 의 y 는 baseline — 위로 0.8배 뻗는다. kits/layout 신설
+  - DEC-COR-THEME           # DECISIONS 07-31 주제 "코너킥" 채택 — 범인 다툼이 주제에 내장돼 있다
+  - DEC-COR-POWER-RADIUS    # DECISIONS 07-31 파워 정확도가 낙하 원 반경을 정한다 — 이 게임의 인과 사슬
+  - DEC-COR-SLIDING-RING    # DECISIONS 07-31 원의 중심이 조준점에서 낙하점으로 미끄러진다
+  - DEC-COR-AI-WATCHES-BALL # DECISIONS 07-31 수비 AI 는 헤더가 아니라 원 중심을 쫓는다
+  - DEC-COR-AI-DELAY        # DECISIONS 07-31 수비수·GK 반응 지연 + 수비수는 헤더를 마크하고 선다
+  - DEC-COR-COVER-GROWS     # DECISIONS 07-31 GK 커버 폭이 거리에 비례 — 깊게 올리면 안전하지만 골이 안 된다
+  - DEC-COR-SIX-BLAMES      # DECISIONS 07-31 실패 6종, 키커 3 · 헤더 3. GK 두 종류를 안 합친다
+  - DEC-COR-HEIGHT-CUES     # DECISIONS 07-31 높이 단서 셋 — 그림자 · 잇는 점선 · 커지는 공
+  - DEC-COR-RESERVE-SPACE   # DECISIONS 07-31 필드 380→360, 아래 60px 을 먼저 비워둔다
+  - DEC-COR-HEADER-EARLY    # DECISIONS 07-31 헤더는 파워 단계부터 움직인다
+  - DEC-DGE-THEME           # DECISIONS 07-31 주제 "총알피하기" 채택 — 원안 1인에서 2인 색 요격으로
+  - DEC-DGE-COLOR           # DECISIONS 07-31 자기 색은 자기를 못 죽인다 — 회피와 요격이 한 조작 안에서 갈린다
+  - DEC-DGE-AIM-OPPOSITE    # DECISIONS 07-31 색 탄은 항상 반대 색을 조준한다
+  - DEC-DGE-NEUTRAL-MID     # DECISIONS 07-31 주인 없는 탄은 두 사람의 중점을 노린다
+  - DEC-DGE-METRIC-WRONG    # DECISIONS 07-31 요격률 97%는 지표 오류였다 — 죽음의 구성으로 재야 한다
+  - DEC-DGE-NO-SPREAD       # DECISIONS 07-31 조준 산포를 넣었다가 지웠다 — 값을 못 했다
+  - DEC-DGE-DILEMMA-TEST    # DECISIONS 07-31 딜레마 자체를 회귀 테스트로 못 박는다
+  - DEC-DGE-SHAPE-TOO       # DECISIONS 07-31 총알을 색 + 모양으로 구분 — 색이 곧 생사라 색맹 대응이 필수
+  - DEC-DGE-SPLIT-KEYS      # DECISIONS 07-31 동시 실시간이라 P1 WASD · P2 방향키로 가른다
 
 requirements:
   - REQ-TURN-VISIBLE        # 다음 비트 담당을 항상 화면에서 알 수 있다 (리드인 포함)
@@ -84,6 +107,21 @@ requirements:
   - REQ-RNG-SEED-SPREAD     # 이웃 시드가 즉시 갈라진다 — 첫 출력 하나로 추첨이 정해지는 곳이 있다
   - REQ-TEXT-NO-OVERLAP     # 화면의 글자가 서로 겹치지 않고 캔버스 안에 들어온다
 
+  - REQ-COR-RING-HONEST     # 낙하점은 언제나 화면의 원 안에 있다 — 원이 거짓말하지 않는다
+  - REQ-COR-KICK-DRIVES     # 키커의 파워 정확도가 헤더의 난이도를 정한다
+  - REQ-COR-BLAME-NAMED     # 실패는 퍼센트가 아니라 이름으로 뜨고 근거 수치가 붙는다
+  - REQ-COR-ZONE-DILEMMA    # 골문 앞·중거리·깊은 곳이 각각 다른 대가를 치른다
+  - REQ-COR-AI-BEATABLE     # 수비수·GK 는 벽이 아니다 — 반 발 먼저면 이긴다
+  - REQ-COR-HEIGHT-READS    # 공의 높이가 그림으로 읽힌다
+  - REQ-COR-ROLE-ROTATES    # 코너마다 역할이 바뀌고 키커별 성적이 모수와 함께 남는다
+
+  - REQ-DGE-COLOR-DECIDES   # 총알 색 하나가 소멸·피격·무피해를 전부 가른다
+  - REQ-DGE-INTERCEPT       # 내 색 탄이 상대에게 갈 때 몸으로 막을 수 있다
+  - REQ-DGE-TELEGRAPH       # 예고 없이는 요격이 불가능하다 — 조준선이 먼저 보인다
+  - REQ-DGE-NO-FREE-SPACING # 붙어 있기도 떨어져 있기도 공짜가 아니다
+  - REQ-DGE-BLAME-COLOR     # 못 막은 색 탄은 그 색 주인의 몫으로 남는다
+  - REQ-DGE-COLORBLIND      # 색맹과 시연 화면에서도 총알 3종이 구분된다
+
 scenarios:
   - SCN-RELAY-CLEAR         # 두 사람이 번갈아 32비트를 완주해 스테이지 클리어
   - SCN-SYNC-BREAK          # 동시 비트에서 한 명이 창을 놓쳐 팀 미스
@@ -106,6 +144,19 @@ scenarios:
   - SCN-ZRO-STRIPE-START    # 줄무늬 배치라 첫 수부터 어디를 쳐도 뺏는다
   - SCN-RNG-SAME-BOARD      # 이웃 시드가 안 갈라져 매판 같은 배치가 나온다 (교체 전 실제 증상)
   - SCN-TEXT-CLASH          # 요약이 격자 위로 올라타고 차례 줄이 배너를 파고든다 (수정 전 실제 증상)
+
+  - SCN-COR-BAD-BALL        # 파워를 놓쳐 원이 크게 뜨고 헤더가 못 붙는다 → "공이 나빴다"
+  - SCN-COR-LATE-RUN        # 원이 작았는데 헤더가 늦어 못 붙는다 → "늦게 붙었다"
+  - SCN-COR-KEEPER-GAMBLE   # 존 안에 떨어졌는데 GK 가 못 닿아 빈 골문이 된다
+  - SCN-COR-DEEP-SAFE-DULL  # 깊게 올려 아무도 안 왔지만 커버가 넓어 못 넣는다
+  - SCN-COR-HALF-STEP       # 헤더가 수비수보다 반 발 먼저 닿아 경합에서 이긴다
+  - SCN-COR-FAR-POST        # 완벽한 점프가 먼 포스트로 꽂혀 골문 지킨 GK 를 넘는다
+
+  - SCN-DGE-SAVE-MATE       # 상대에게 꽂히기 직전 몸을 던져 내 색 탄을 지운다
+  - SCN-DGE-LEAK            # 못 막아서 내 색 탄이 상대를 맞힌다 — "네 색이었잖아"
+  - SCN-DGE-NEUTRAL-SPLIT   # 붙어 있다가 주인 없는 탄 한 발에 둘 다 걸릴 뻔해 흩어진다
+  - SCN-DGE-TOO-FAR         # 떨어져 있다가 막으러 못 가서 색 탄이 샌다
+  - SCN-DGE-SHRINK-SQUEEZE  # 아레나가 좁아져 강제로 가까워지고 주인 없는 탄이 무서워진다
 
 tests:
   - TEST-RELAY-ROTATION     # rhythm.test "차례는 라운드로빈으로 돈다"
@@ -148,9 +199,25 @@ tests:
   - TEST-TEXT-STACK         # layout.test 제로섬·떠넘기기 세로 스택 겹침 0 · 화면 안
   - TEST-ZRO-RADIUS         # zerosum.test 모양 사전 확정 · 라운드마다 재추첨 · 시드 결정성 · preview 일치
 
+  - TEST-COR-RING-INVARIANT # corner.test "낙하점은 언제나 원 안" (시드 60 × 파워 7종, 비행 전 구간)
+  - TEST-COR-POWER-RADIUS   # corner.test "정확할수록 원이 작다 — 단조 감소" + 양 끝 R_MIN/R_MAX
+  - TEST-COR-JUDGE          # corner.test 판정 6종 + 골이 각각 결정적으로 재현된다
+  - TEST-COR-COVER          # corner.test "깊은 곳에서는 완벽한 점프로도 못 넣는다" + 커버 폭 단조
+  - TEST-COR-AI             # corner.test 수비수가 원 중심을 쫓는다 · GK 존 판정 · 둘 다 반응 지연
+  - TEST-COR-BLAME-SPLIT    # corner.test "실패 6종이 키커 3 · 헤더 3 으로 갈린다"
+  - TEST-COR-FLOW           # corner.test 코너마다 키커 교대 · 6코너 종료 · 키커별 집계
+  - TEST-COR-LAYOUT         # corner.test 정적 배치 스택 4종 (움직이는 물체는 못 본다)
+
+  - TEST-DGE-AIM-INVARIANT  # dodge.test "색 탄의 대상은 항상 1 - owner" (시드 40개)
+  - TEST-DGE-COLOR-JUDGE    # dodge.test 색 판정 3종 + 집계 귀속 + 사연 문구
+  - TEST-DGE-TELEGRAPH      # dodge.test "예고 중에는 움직이지도 맞히지도 않는다"
+  - TEST-DGE-CURVE          # dodge.test 난이도 4종이 하한/상한에서 멈춘다 + 아레나 가둠
+  - TEST-DGE-DILEMMA        # dodge.test "붙어 있으면 주인 없는 탄이, 떨어지면 색 탄이 더 죽인다"
+  - TEST-DGE-LAYOUT         # dodge.test 정적 배치 스택 (움직이는 물체는 못 본다)
+
 evidence:
   - EVD-PLAYTEST-MASH       # evidence/playtest-2026-07-29-mash.md — 연타 난이도 합격(스테이지 4까지)
-  - EVD-SUITE               # npm test 139개 통과 (src/*.test.ts)
+  - EVD-SUITE               # npm test 217개 통과 (src/*.test.ts)
   - EVD-BUILD               # npm run build → dist/ (tsc + vite)
 
 links:
@@ -393,3 +460,108 @@ links:
   - { from: TEST-TEXT-BAND, to: EVD-SUITE }
   - { from: TEST-TEXT-STACK, to: EVD-SUITE }
 
+  # 코너킥 세로 조각 (COR-001) — 첫 실시간 자유이동 게임
+  - { from: THEME-CORNER, to: CON-005 }
+  - { from: CON-005, to: DEC-COR-THEME }
+  - { from: CON-005, to: DEC-COR-POWER-RADIUS }
+  - { from: CON-005, to: DEC-COR-SLIDING-RING }
+  - { from: CON-005, to: DEC-COR-AI-WATCHES-BALL }
+  - { from: CON-005, to: DEC-COR-AI-DELAY }
+  - { from: CON-005, to: DEC-COR-COVER-GROWS }
+  - { from: CON-005, to: DEC-COR-SIX-BLAMES }
+  - { from: CON-005, to: DEC-COR-HEIGHT-CUES }
+  - { from: CON-005, to: DEC-COR-HEADER-EARLY }
+  - { from: DEC-TEXT-BAND, to: DEC-COR-RESERVE-SPACE }   # 겹침 네 번의 교훈 → 자리를 먼저 비운다
+
+  - { from: DEC-COR-SLIDING-RING, to: REQ-COR-RING-HONEST }
+  - { from: DEC-COR-POWER-RADIUS, to: REQ-COR-KICK-DRIVES }
+  - { from: DEC-COR-SIX-BLAMES, to: REQ-COR-BLAME-NAMED }
+  - { from: DEC-COR-COVER-GROWS, to: REQ-COR-ZONE-DILEMMA }
+  - { from: DEC-COR-AI-DELAY, to: REQ-COR-AI-BEATABLE }
+  - { from: DEC-COR-AI-WATCHES-BALL, to: REQ-COR-AI-BEATABLE }
+  - { from: DEC-COR-HEIGHT-CUES, to: REQ-COR-HEIGHT-READS }
+  - { from: DEC-COR-HEADER-EARLY, to: REQ-COR-AI-BEATABLE }
+  - { from: DEC-COR-RESERVE-SPACE, to: REQ-TEXT-NO-OVERLAP }
+  - { from: DEC-COR-THEME, to: REQ-COR-ROLE-ROTATES }
+
+  - { from: REQ-COR-KICK-DRIVES, to: SCN-COR-BAD-BALL }
+  - { from: REQ-COR-BLAME-NAMED, to: SCN-COR-BAD-BALL }
+  - { from: REQ-COR-BLAME-NAMED, to: SCN-COR-LATE-RUN }
+  - { from: REQ-COR-RING-HONEST, to: SCN-COR-LATE-RUN }
+  - { from: REQ-COR-ZONE-DILEMMA, to: SCN-COR-KEEPER-GAMBLE }
+  - { from: REQ-COR-ZONE-DILEMMA, to: SCN-COR-DEEP-SAFE-DULL }
+  - { from: REQ-COR-AI-BEATABLE, to: SCN-COR-HALF-STEP }
+  - { from: REQ-COR-AI-BEATABLE, to: SCN-COR-KEEPER-GAMBLE }
+  - { from: REQ-COR-HEIGHT-READS, to: SCN-COR-FAR-POST }
+  - { from: REQ-COR-ROLE-ROTATES, to: SCN-COR-HALF-STEP }
+
+  - { from: SCN-COR-BAD-BALL, to: TEST-COR-JUDGE }
+  - { from: SCN-COR-BAD-BALL, to: TEST-COR-POWER-RADIUS }
+  - { from: SCN-COR-LATE-RUN, to: TEST-COR-JUDGE }
+  - { from: SCN-COR-LATE-RUN, to: TEST-COR-RING-INVARIANT }
+  - { from: SCN-COR-KEEPER-GAMBLE, to: TEST-COR-JUDGE }
+  - { from: SCN-COR-KEEPER-GAMBLE, to: TEST-COR-AI }
+  - { from: SCN-COR-DEEP-SAFE-DULL, to: TEST-COR-COVER }
+  - { from: SCN-COR-HALF-STEP, to: TEST-COR-AI }
+  - { from: SCN-COR-HALF-STEP, to: TEST-COR-FLOW }
+  - { from: SCN-COR-FAR-POST, to: TEST-COR-JUDGE }
+  - { from: SCN-COR-FAR-POST, to: TEST-COR-LAYOUT }
+
+  - { from: TEST-COR-RING-INVARIANT, to: EVD-SUITE }
+  - { from: TEST-COR-POWER-RADIUS, to: EVD-SUITE }
+  - { from: TEST-COR-JUDGE, to: EVD-SUITE }
+  - { from: TEST-COR-COVER, to: EVD-SUITE }
+  - { from: TEST-COR-AI, to: EVD-SUITE }
+  - { from: TEST-COR-BLAME-SPLIT, to: EVD-SUITE }
+  - { from: TEST-COR-FLOW, to: EVD-SUITE }
+  - { from: TEST-COR-LAYOUT, to: EVD-SUITE }
+  - { from: CON-005, to: EVD-BUILD }
+
+  # 총알피하기 세로 조각 (DGE-001) — 플레이어 색이 규칙 자체가 되는 첫 사례
+  - { from: THEME-DODGE, to: CON-006 }
+  - { from: CON-006, to: DEC-DGE-THEME }
+  - { from: CON-006, to: DEC-DGE-COLOR }
+  - { from: CON-006, to: DEC-DGE-AIM-OPPOSITE }
+  - { from: CON-006, to: DEC-DGE-NEUTRAL-MID }
+  - { from: CON-006, to: DEC-DGE-SHAPE-TOO }
+  - { from: CON-006, to: DEC-DGE-SPLIT-KEYS }
+  - { from: DEC-DGE-METRIC-WRONG, to: DEC-DGE-NO-SPREAD }      # 틀린 지표를 쫓아 더한 복잡도
+  - { from: DEC-DGE-METRIC-WRONG, to: DEC-DGE-DILEMMA-TEST }   # 지표를 고쳐 얻은 검사
+
+  - { from: DEC-DGE-COLOR, to: REQ-DGE-COLOR-DECIDES }
+  - { from: DEC-DGE-COLOR, to: REQ-DGE-INTERCEPT }
+  - { from: DEC-DGE-AIM-OPPOSITE, to: REQ-DGE-INTERCEPT }
+  - { from: DEC-DGE-THEME, to: REQ-DGE-TELEGRAPH }
+  - { from: DEC-DGE-NEUTRAL-MID, to: REQ-DGE-NO-FREE-SPACING }
+  - { from: DEC-DGE-DILEMMA-TEST, to: REQ-DGE-NO-FREE-SPACING }
+  - { from: DEC-DGE-COLOR, to: REQ-DGE-BLAME-COLOR }
+  - { from: DEC-DGE-SHAPE-TOO, to: REQ-DGE-COLORBLIND }
+  - { from: DEC-DGE-SPLIT-KEYS, to: REQ-DGE-INTERCEPT }
+  - { from: DEC-COR-RESERVE-SPACE, to: REQ-TEXT-NO-OVERLAP }   # 자리 먼저 비우기를 여기서도 썼다
+
+  - { from: REQ-DGE-INTERCEPT, to: SCN-DGE-SAVE-MATE }
+  - { from: REQ-DGE-TELEGRAPH, to: SCN-DGE-SAVE-MATE }
+  - { from: REQ-DGE-BLAME-COLOR, to: SCN-DGE-LEAK }
+  - { from: REQ-DGE-COLOR-DECIDES, to: SCN-DGE-LEAK }
+  - { from: REQ-DGE-NO-FREE-SPACING, to: SCN-DGE-NEUTRAL-SPLIT }
+  - { from: REQ-DGE-NO-FREE-SPACING, to: SCN-DGE-TOO-FAR }
+  - { from: REQ-DGE-NO-FREE-SPACING, to: SCN-DGE-SHRINK-SQUEEZE }
+  - { from: REQ-DGE-COLORBLIND, to: SCN-DGE-NEUTRAL-SPLIT }
+
+  - { from: SCN-DGE-SAVE-MATE, to: TEST-DGE-COLOR-JUDGE }
+  - { from: SCN-DGE-SAVE-MATE, to: TEST-DGE-AIM-INVARIANT }
+  - { from: SCN-DGE-SAVE-MATE, to: TEST-DGE-TELEGRAPH }
+  - { from: SCN-DGE-LEAK, to: TEST-DGE-COLOR-JUDGE }
+  - { from: SCN-DGE-LEAK, to: TEST-DGE-DILEMMA }
+  - { from: SCN-DGE-NEUTRAL-SPLIT, to: TEST-DGE-DILEMMA }
+  - { from: SCN-DGE-TOO-FAR, to: TEST-DGE-DILEMMA }
+  - { from: SCN-DGE-SHRINK-SQUEEZE, to: TEST-DGE-CURVE }
+  - { from: SCN-DGE-SHRINK-SQUEEZE, to: TEST-DGE-LAYOUT }
+
+  - { from: TEST-DGE-AIM-INVARIANT, to: EVD-SUITE }
+  - { from: TEST-DGE-COLOR-JUDGE, to: EVD-SUITE }
+  - { from: TEST-DGE-TELEGRAPH, to: EVD-SUITE }
+  - { from: TEST-DGE-CURVE, to: EVD-SUITE }
+  - { from: TEST-DGE-DILEMMA, to: EVD-SUITE }
+  - { from: TEST-DGE-LAYOUT, to: EVD-SUITE }
+  - { from: CON-006, to: EVD-BUILD }

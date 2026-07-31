@@ -1,0 +1,47 @@
+name: Deploy to GitHub Pages
+
+# 기존 nan2026.yml 은 게이트(trace·protect·test·build)를 돌린다.
+# 이 워크플로는 배포만 맡는다 — 둘을 합치면 게이트 실패와 배포 실패가 한 칸에 섞인다.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 한 번에 하나만. 진행 중인 것을 취소하지 않는다 — 반쯤 올라간 상태를 만들지 않기 위해서다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # 테스트를 통과해야 올라간다. 깨진 판이 공개되는 것보다 안 올라가는 편이 낫다.
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
