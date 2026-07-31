@@ -22,13 +22,23 @@ export const MODS: readonly ModSpec[] = [
   { id: "short", name: "짧은 심지", desc: "임계 범위가 절반이다" },
   { id: "fog", name: "안개", desc: "임계 범위를 알려주지 않는다" },
   { id: "double", name: "두 배", desc: "굴린 눈이 점수에 2배로 들어간다" },
-  { id: "hotpotato", name: "뜨거운 감자", desc: "넘기면 게이지가 5 오른다" },
+  { id: "hotpotato", name: "뜨거운 감자", desc: "넘기면 게이지가 2 오른다" },
   { id: "undo", name: "되돌리기", desc: "각자 1회씩 마지막 굴림을 취소한다" },
   { id: "burst", name: "연발", desc: "한 번 누르면 두 번 굴러간다" },
   { id: "fixed", name: "눈 고정", desc: "주사위가 항상 3이다" },
 ] as const;
 
 export const modSpec = (id: ModId): ModSpec => MODS.find((m) => m.id === id) ?? MODS[0];
+
+/**
+ * 뜨거운 감자 — 넘길 때 오르는 게이지.
+ *
+ * **평균 굴림보다 작아야 한다.** 처음엔 5 였는데 6면 주사위의 평균 굴림(3.5)의 143% 라,
+ * 이 게임의 핵심 동사인 넘기기가 굴리기보다 비쌌다 — 게이지 상승의 59%가 넘기기에서
+ * 나와 주사위가 부차적이 되고 라운드가 3.8차례로 반토막 났다(플레이 지적).
+ * 2 면 넘기기 몫 36% · 라운드 5.9차례로, 변주로 느껴지되 다른 게임이 되지 않는다.
+ */
+export const HOT_POTATO_COST = 2;
 
 export interface RollResult {
   face: number;        // 이번 행동으로 게이지에 더해진 총량 (연발이면 두 눈의 합)
@@ -204,7 +214,7 @@ export class PushLuck {
     // 뜨거운 감자 — 넘기는 값이 공짜가 아니다. 여기서 터짐을 판정하지는 않는다:
     // 아무도 안 굴렸는데 터지면 이상하다. 임계를 넘겨두면 다음 굴림이 확정으로 터지고
     // 그 책임은 넘긴 사람에게 간다(blame passer).
-    if (this.mod === "hotpotato") this.gauge += 5;
+    if (this.mod === "hotpotato") this.gauge += HOT_POTATO_COST;
     return true;
   }
 }

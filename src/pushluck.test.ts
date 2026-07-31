@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PushLuck, PushOpts, MODS, ModId } from "./systems/pushluck";
+import { PushLuck, PushOpts, MODS, ModId, HOT_POTATO_COST } from "./systems/pushluck";
 import { ROLL, creepDuration } from "./scenes/pushluck";
 
 // 임계값을 고정하려면 min===max 로 준다. 굴림은 시드로 결정적이다.
@@ -212,21 +212,34 @@ describe("떠넘기기 — 라운드 규칙", () => {
     expect(e.pot[who] - p0).toBe(r.face * 2 * e.stakeMult);   // 점수는 2배
   });
 
-  it("뜨거운 감자 — 넘기면 게이지가 5 오르되 그 자체로는 안 터진다", () => {
+  it("뜨거운 감자 — 넘기면 게이지가 오르되 그 자체로는 안 터진다", () => {
     const e = withMod("hotpotato", { limitMin: 999, limitMax: 999 });
     e.roll();
     const g = e.gauge, r = e.round;
     expect(e.pass()).toBe(true);
-    expect(e.gauge).toBe(g + 5);
+    expect(e.gauge).toBe(g + HOT_POTATO_COST);
     expect(e.round).toBe(r);           // 라운드가 안 끝났다 = 안 터졌다
     expect(e.pot).toEqual(e.pot);      // 아무도 안 굴렸으므로 pot 변화 없음
   });
 
+  it("**넘기는 값이 평균 굴림보다 작다** — 핵심 동사를 벌하면 안 된다", () => {
+    // 처음엔 5 였고 평균 굴림(3.5)의 143% 라, 게임 이름이 "떠넘기기"인데 넘기는 것이
+    // 굴리는 것보다 비쌌다. 값이 아니라 관계를 검사한다 — 면 수가 바뀌어도 따라온다.
+    const avgRoll = (withMod("hotpotato").sides + 1) / 2;
+    expect(HOT_POTATO_COST).toBeLessThan(avgRoll);
+    expect(HOT_POTATO_COST).toBeGreaterThan(0);   // 그렇다고 공짜여도 안 된다
+  });
+
   it("뜨거운 감자로 임계를 넘겨두면 다음 굴림이 터지고 책임은 넘긴 사람에게 간다", () => {
-    const e = withMod("hotpotato", { limitMin: 6, limitMax: 6 });
-    while (e.gauge === 0) e.roll();    // 한 번 굴려 pot 을 만든다(터졌으면 라운드가 바뀐다)
-    if (e.round !== 2) return;         // 첫 굴림에 터졌으면 이 판정은 못 본다
-    if (!e.pass()) return;
+    // 예전엔 `limitMin/Max 6` 에 기대 "+5 면 무조건 넘는다"로 짰다 —
+    // 비용이 바뀌면 조용히 깨지는 검사였다(PSH-006 에서 실제로 깨졌다).
+    // 이제 게이지를 직접 세워 **비용이 얼마든** 의도만 검사한다.
+    const e = withMod("hotpotato", { limitMin: 20, limitMax: 20 });
+    e.roll();                     // pot 을 만든다. 최대 6 이라 20 을 못 넘어 안 터진다
+    e.gauge = 20 - HOT_POTATO_COST + 1;   // 넘기기 하나로 임계를 넘도록 세운다
+    expect(e.pass()).toBe(true);
+    expect(e.gauge).toBeGreaterThan(20);  // 넘겨뒀지만 아직 안 터졌다
+    expect(e.round).toBe(2);
     const r = e.roll()!;
     expect(r.boom).toBe(true);
     expect(r.blame).toBe("passer");
