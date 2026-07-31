@@ -1,0 +1,132 @@
+{
+  "task_id": "PSH-004",
+  "summary_of_changes": "떠넘기기 굴림을 3단 연출(`tumble` 0.85s → `settle` 0.35s → `creep` 눈×0.17s)로 늦췄다. 엔진은 한 줄도 안 건드리고 씬에 `Anim` 상태를 넣어, 누르는 순간 확정된 `RollResult` 를 화면이 늦게 보여준다. 심지가 타는 시간이 눈에 비례하고, 연출 중 모든 입력이 막히며 판 종료도 연출 뒤로 미뤄진다. 곁들여 터짐 연출 중 심지가 출발점으로 돌아가 있던 버그를 고쳤다.",
+  "why": "플레이 지적 — \"주사위 굴러가는 이펙트 등 좀 천천히 인터페이스적으로 긴장감 유도\". 지금까지는 굴리기를 누르면 눈·게이지·폭발이 한 프레임에 확정돼 불꽃이 순간이동했다. 이 게임의 punchline 이 \"언제 끊길지 모르는 심지\"인데 끊기는 과정이 화면에 없었다 — PSH-002 가 심지를 그림으로 만들고도 그 그림에 시간을 안 준 채였다.",
+  "files_changed": [
+    "src/scenes/pushluck.ts (ROLL·creepDuration·Anim 신설, doRoll 분할, stepRoll/settleRoll, 그리기 4곳 + HUD)",
+    "src/pushluck.test.ts (31 → 35, 연출 타이밍 4건 추가)",
+    "tasks/PSH-004.md (신규 — 작업 명세)",
+    "docs/GAME_SPEC.md (\"굴림 연출\" 절 신설 + 노브)",
+    "docs/DECISIONS.md (07-31 결정 5행)"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "auto",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (224개 — 떠넘기기 35개, 기존 189개 무영향)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "**엔진 무변경 증거** — src/systems/pushluck.ts 체크섬 동일(3ea3c295…), git diff 0줄",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "엔진 테스트 31개가 한 줄도 안 바뀌고 통과",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "연출 타이밍 — 눈에 비례(단조 증가) · 하한 존재 · 총 1.0~3.0초 · 감속",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite). dist 93.3 → 94.5 kB",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass gate pre-task PSH-004",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify (5/5)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan trace validate",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "**사람이 굴려보지 않았다.** 2.2초가 긴장되는지 답답한지가 이 작업의 존재 이유이고 자동 검증 대상이 아니다.",
+      "감속 곡선(0.04s → 0.24s)이 주사위처럼 읽히는지.",
+      "불꽃이 기어가는 것이 실제로 \"언제 끊길지 모른다\"를 만드는지, 아니면 그냥 기다림인지.",
+      "눈금마다 나는 지글 소리가 거슬리는지. 6이면 6번 난다.",
+      "큰 눈일 때 더 긴장되는 비례가 체감되는지 — 산술로는 맞지만 사람이 느끼는지는 모른다.",
+      "연출 중 입력 차단이 답답한지 — 빨리 넘기고 싶을 때 막히는 느낌일 수 있다.",
+      "연발(두 눈 합산) 라운드에서 큰 값이 나오면 creep 이 길어지는데 그 길이가 적절한지."
+    ],
+    "rendered_verification": false
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0,
+    "note": "critic 패스 미실행."
+  },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다.",
+    "**씬에 처음으로 시간이 흐르는 진행 상태가 생겼다.** 턴제 게임인데 `update` 가 연출 감쇠만 하던 규칙이 깨졌다. 제로섬·떠넘기기가 공유하던 \"턴제 씬은 update 가 일 안 한다\"는 성질이 이제 떠넘기기에만 없다.",
+    "연출을 건너뛸 방법이 없다. 반복 플레이에서 답답할 수 있는데 스킵 키를 조각에서 뺐다.",
+    "타이밍 검사가 **상수의 산술**만 본다. 실제로 `stepRoll` 이 단계를 제대로 넘기는지는 캔버스 없이 못 돌려서 검증 못 했다 — 연출 로직 자체는 테스트 밖이다.",
+    "`Anim.face` 가 `Math.random()` 을 쓴다. 연출용이라 판정에 영향이 없지만, 씬에서 시드 없는 난수를 쓰는 자리가 하나 늘었다.",
+    "되돌리기(`undo`)로 터진 라운드를 무를 때 연출은 그냥 사라진다 — 되감기는 연출이 없다. 범위 밖으로 뒀다.",
+    "터짐 연출 중 심지를 끊긴 자리에 세워두는 수정은 **원래 명세에 없던 곁가지**다. 기어가는 연출을 넣으니 모순이 드러나 같이 고쳤고, 명세의 What we are shipping 에 추가로 적었다."
+  ],
+  "out_of_scope_findings": [
+    "다른 게임들도 판정이 즉시 확정된다. 제로섬은 클릭 즉시 칸이 넘어가고 코너킥은 착지 즉시 판정이다 — 같은 종류의 연출 여지가 있지만 이번엔 떠넘기기만 했다.",
+    "`Sfx.tick()` 하나로 달그락과 지글을 겸한다. 소리가 구분되면 단계가 더 읽힐 것이다."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md"
+    ],
+    "detail": [
+      "docs/GAME_SPEC.md — \"굴림 연출 — 3단으로 늦춘다\" 절 신설 (단계표·creep 근거·입력 차단·터짐 중 심지)",
+      "docs/DECISIONS.md — 07-31 결정 5행 (3단 연출, 결과 선확정, 눈 비례, 입력 차단, 터짐 중 심지 버그)"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "**연출을 넣으면 그 전에는 안 보이던 모순이 보인다.** 터짐 뒤 심지가 출발점으로 돌아가 있는 것은 즉시 판정일 때 아무도 못 봤다. 불꽃이 기어가게 만들자 그 자리가 어긋난다는 게 드러났다 — 시간을 주는 것 자체가 검사다.",
+      "**결과를 먼저 확정하고 화면만 늦추면 엔진이 안 흔들린다.** 연출 도중에 판정하는 방식이면 되돌리기·시드 결정성을 다시 검증해야 했을 텐데, 이 구조 덕에 엔진 테스트 31개가 한 줄도 안 바뀌었다. **체크섬으로 무변경을 증명한 것이 기록으로 남는다.**",
+      "**긴장의 크기를 이미 있는 값에 비례시킨다.** 심지가 타는 시간을 눈에 비례시키니 규칙을 새로 만들지 않고 \"큰 눈 = 큰 긴장\"이 나왔다. 새 노브를 만드는 대신 기존 값을 시간축에 매핑하는 방법이 있다.",
+      "**턴제 씬이라는 전제가 깨지는 자리를 명시해야 한다.** \"턴제라 update 가 진행할 것이 없다\"는 주석이 파일 맨 위에 있었는데 이제 부분적으로 거짓이다 — 전제를 적어둔 자리도 같이 고쳐야 한다."
+    ]
+  },
+  "rollback": {
+    "method": "`src/scenes/pushluck.ts` 에서 `ROLL`·`creepDuration`·`Anim`·`anim`·`busy`·`gaugeShown`·`stepRoll`·`settleRoll` 을 지우고 `doRoll()` 을 즉시 판정하던 형태(엔진 roll → lastFace/popScale → boom 처리)로 되돌린다. 그리기의 `shown` 을 `e.gauge` 로 환원하고 불꽃 조건에서 `&& !this.boom` 을 뺀다. HUD 게이지도 `e.gauge` 로. `src/pushluck.test.ts` 의 \"굴림 연출 타이밍\" 묶음 4건과 씬 import 를 제거한다. GAME_SPEC 의 \"굴림 연출\" 절과 노브 1행, DECISIONS 07-31 5행을 지운다. 엔진을 안 건드렸으므로 규칙에 영향이 없다.",
+    "tested": false
+  },
+  "design": {
+    "design_md_read": true,
+    "principles_followed": [
+      "원칙 3 (판정 결과는 곧 사라진다) — 터짐 연출 2.4초는 그대로. 굴림 연출은 판정 전 단계라 누적되지 않는다",
+      "원칙 5 (장식이 판정을 안 가린다) — 파티클을 안 만들고 기존 불꽃의 위치만 시간에 따라 움직인다",
+      "원칙 4 (숫자 옆에 모수) — 게이지 숫자도 연출을 따라가 화면과 글자가 어긋나지 않는다"
+    ],
+    "tokens_only": true,
+    "rendered_verification": false,
+    "note": "HUD 게이지도 연출 게이지를 쓴다. 안 그러면 심지가 기어가는 동안 결과 숫자가 캔버스 위 HUD 에 먼저 떠서 긴장이 통째로 사라진다 — 같은 값을 두 곳에 그릴 때는 둘 다 같은 출처를 봐야 한다."
+  }
+}

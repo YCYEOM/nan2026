@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { PushLuck, PushOpts, MODS, ModId } from "./systems/pushluck";
+import { ROLL, creepDuration } from "./scenes/pushluck";
 
 // 임계값을 고정하려면 min===max 로 준다. 굴림은 시드로 결정적이다.
 // modPool 기본을 ["none"] 으로 둬 라운드 규칙이 기존 판정을 흔들지 않게 한다 —
@@ -342,3 +343,29 @@ describe("떠넘기기 — 판돈 상승", () => {
     expect(e.pot[who] - p0).toBe(r.face * 2);
   });
 });
+
+describe("굴림 연출 타이밍 (PSH-004)", () => {
+  // 화면은 못 보지만 "큰 눈이 오래 탄다"는 산술로 볼 수 있다.
+  it("심지가 타는 시간이 눈에 비례한다", () => {
+    const ds = [1, 2, 3, 4, 5, 6].map(creepDuration);
+    for (let i = 1; i < ds.length; i++) expect(ds[i]).toBeGreaterThanOrEqual(ds[i - 1]);
+    expect(ds[5]).toBeGreaterThan(ds[0]);   // 6 은 1 보다 확실히 오래 탄다
+  });
+
+  it("아무리 작은 눈도 하한만큼은 탄다 — 순간이동하지 않는다", () => {
+    expect(creepDuration(0)).toBe(ROLL.CREEP_MIN);
+    expect(creepDuration(1)).toBeGreaterThanOrEqual(ROLL.CREEP_MIN);
+  });
+
+  it("한 번 굴리는 데 걸리는 시간이 긴장되되 답답하지 않은 범위다", () => {
+    const total = (span: number) => ROLL.TUMBLE + ROLL.SETTLE + creepDuration(span);
+    expect(total(1)).toBeGreaterThan(1.0);   // 즉시 끝나지 않는다
+    expect(total(6)).toBeLessThan(3.0);      // 기다리다 지치지 않는다
+  });
+
+  it("구르는 눈 간격이 감속한다 — 처음이 빠르고 끝이 느리다", () => {
+    expect(ROLL.TICK_FAST).toBeLessThan(ROLL.TICK_FAST + ROLL.TICK_SLOW);
+    expect(ROLL.TUMBLE).toBeGreaterThan(ROLL.TICK_FAST + ROLL.TICK_SLOW);   // 최소 몇 번은 바뀐다
+  });
+});
+

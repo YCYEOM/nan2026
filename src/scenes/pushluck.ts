@@ -1,11 +1,12 @@
 // 리허설6 "떠넘기기" — 굴리면 게이지와 내 점수가 함께 오르고, 넘기면 쌓인 게이지가 상대에게 간다.
 // 재사용: Harness, Sfx, 토큰. 신규: systems/pushluck.
 //
-// 턴제라 update 로 진행할 것이 없다 — 입력만으로 상태가 움직이고 update 는 연출 감쇠만 한다.
+// 턴제라 진행은 입력이 한다. 다만 **굴림 연출이 도는 동안만** update 가 진행을 맡는다
+// (PSH-004) — 판정은 누르는 순간 확정되고 화면이 3단으로 늦게 보여줄 뿐이다.
 // 핫시트 2인이 완성형이다(정보 비대칭이 규칙이 아니라 네트워크가 선행 조건이 아니다).
 import { Harness, Scene, PointerState } from "../core/harness";
 import { Sfx } from "../systems/sfx";
-import { PushLuck, PushOpts, Blame, modSpec } from "../systems/pushluck";
+import { PushLuck, PushOpts, Blame, RollResult, modSpec } from "../systems/pushluck";
 import { C, F, font, withAlpha, sigGradient, glow } from "../ui/tokens";
 
 const PLAYERS = 2;
@@ -33,6 +34,39 @@ const hit = (b: Btn, p: PointerState) => p.x >= b.x && p.x <= b.x + b.w && p.y >
 /** 터짐 연출 + 범인 문구. 이 게임이 클립이 되는 유일한 이유다. */
 interface Boom { player: number; blame: Blame; lost: number; banked: number; face: number; life: number; gauge: number }
 
+/**
+ * 굴림 연출 타이밍. **결과는 누르는 순간 이미 확정돼 있고 화면이 늦게 보여줄 뿐이다** —
+ * 엔진은 한 줄도 안 건드리므로 되돌리기·시드 결정성이 그대로다.
+ */
+export const ROLL = {
+  TUMBLE: 0.85,     // 눈이 굴러가는 시간
+  SETTLE: 0.35,     // 눈이 확정되고 잠깐 머문다 — 여기서 숨을 참는다
+  PER_PIP: 0.17,    // 심지가 눈 하나만큼 타는 시간
+  CREEP_MIN: 0.25,
+  TICK_FAST: 0.04,  // 구르는 초반 눈 바뀌는 간격
+  TICK_SLOW: 0.2,   // 끝에서 이만큼까지 느려진다
+} as const;
+
+/**
+ * 심지가 `span` 만큼 타는 데 걸리는 시간. **눈에 비례한다** —
+ * 고정 시간이면 1 과 6 이 같은 긴장이 되고, 이 게임에서 큰 눈은 곧 큰 위험이다.
+ */
+export function creepDuration(span: number) {
+  return Math.max(ROLL.CREEP_MIN, Math.abs(span) * ROLL.PER_PIP);
+}
+
+type Stage = "tumble" | "settle" | "creep";
+/** 진행 중인 굴림 연출. `result` 는 이미 확정된 것이고 여기서 바뀌지 않는다. */
+interface Anim {
+  stage: Stage; t: number;
+  face: number;      // 구르는 동안 보여줄 눈(연출용)
+  next: number;      // 다음에 눈이 바뀔 때까지
+  shown: number;     // 화면에 그리는 게이지
+  from: number; to: number;
+  ticked: number;    // 지글 소리를 낸 마지막 눈금
+  result: RollResult;
+}
+
 export class PushScene implements Scene {
   private eng!: PushLuck;
   private sfx = new Sfx();
@@ -41,6 +75,21 @@ export class PushScene implements Scene {
   private boom: Boom | null = null;
   private shake = 0; private flash = 0; private popScale = 0;
   private passHint = 0;   // 굴리기 전에 넘기려 했을 때 잠깐 띄우는 거절 표시
+  private anim: Anim | null = null;
+
+  /** 연출이 도는 동안은 모든 입력을 막는다 — 안 막으면 같은 굴림이 두 번 들어간다. */
+  private get busy() { return this.anim !== null; }
+
+  /**
+   * 화면에 그릴 게이지. 연출 중이면 기어가는 값, 터짐 연출 중이면 **끊긴 자리**다.
+   * `newRound` 가 엔진 게이지를 0 으로 되돌리므로, 이걸 안 쓰면 폭발은 끊긴 자리에
+   * 그려지는데 재와 불꽃만 출발점으로 돌아가 있다.
+   */
+  private gaugeShown() {
+    if (this.anim) return this.anim.shown;
+    if (this.boom) return this.boom.gauge;
+    return this.eng.gauge;
+  }
 
   constructor(private h: Harness) { this.reset(); }
   enter() { this.reset(); }
@@ -49,17 +98,30 @@ export class PushScene implements Scene {
     this.eng = new PushLuck(OPTS);
     this.lastFace = 0; this.lastFaces = []; this.boom = null;
     this.shake = 0; this.flash = 0; this.popScale = 0; this.passHint = 0;
+    this.anim = null;
     this.h.score = 0;
     this.h.to("play");
     this.h.record("psh:reset", { limitRange: this.eng.limitRange, target: OPTS.target });
   }
 
+  /** 굴린다 — 판정은 여기서 끝나고, 화면은 `update` 가 3단으로 풀어놓는다. */
   private doRoll() {
+    if (this.busy) return;
+    const from = this.eng.gauge;
     const r = this.eng.roll();
     if (!r) return;
-    this.lastFace = r.face;
-    this.lastFaces = r.faces;
-    this.popScale = 1;
+    this.anim = {
+      stage: "tumble", t: 0,
+      face: 1 + Math.floor(Math.random() * SIDES), next: ROLL.TICK_FAST,
+      shown: from, from, to: r.gauge, ticked: from, result: r,
+    };
+    this.sfx.tick();
+  }
+
+  /** 연출이 끝난 뒤에야 결과를 화면 상태로 옮긴다 — 판 종료도 여기서다. */
+  private settleRoll() {
+    const r = this.anim!.result;
+    this.anim = null;
     if (r.boom) {
       // 터진 게이지를 기억한다 — newRound 가 게이지를 0 으로 되돌려서
       // 그리는 시점엔 불꽃이 이미 출발점에 있다. 폭발은 끊긴 자리에서 나야 한다.
@@ -70,7 +132,7 @@ export class PushScene implements Scene {
       if (this.eng.done) {
         const w = this.eng.winner();
         this.h.score = this.eng.score[Math.max(0, w)];
-        this.h.to(w === this.eng.turn ? "win" : "win");   // 승패는 화면에서 이름으로 밝힌다
+        this.h.to("win");   // 승패는 화면에서 이름으로 밝힌다
         this.sfx.win();
         this.h.record("psh:match", { winner: w, score: this.eng.score });
       }
@@ -81,7 +143,7 @@ export class PushScene implements Scene {
   }
 
   private doUndo() {
-    if (!this.eng.undo()) return;
+    if (this.busy || !this.eng.undo()) return;
     this.boom = null;              // 터짐 연출도 같이 취소한다 — 없던 일이 됐다
     this.shake = 0; this.flash = 0;
     this.lastFace = 0; this.lastFaces = [];
@@ -90,6 +152,7 @@ export class PushScene implements Scene {
   }
 
   private doPass() {
+    if (this.busy) return;
     if (!this.eng.pass()) { this.passHint = 1.2; this.sfx.missHit(); return; }
     this.sfx.role();
     this.h.record("psh:pass", { turn: this.eng.turn, gauge: this.eng.gauge });
@@ -114,7 +177,8 @@ export class PushScene implements Scene {
   }
 
   update(dt: number) {
-    // 진행은 입력이 하고 update 는 연출만 감쇠한다.
+    // 굴림 연출이 도는 동안만 update 가 **진행**을 맡는다. 나머지는 감쇠뿐이다.
+    if (this.anim) this.stepRoll(dt);
     this.shake = Math.max(0, this.shake - dt * 40);
     this.flash = Math.max(0, this.flash - dt * 1.6);
     this.popScale = Math.max(0, this.popScale - dt * 3);
@@ -123,6 +187,47 @@ export class PushScene implements Scene {
       this.boom.life -= dt;
       if (this.boom.life <= 0) this.boom = null;
     }
+  }
+
+  /**
+   * 굴림 연출 3단. **구름 → 확정 → 심지가 탄다.**
+   * 결과는 이미 정해져 있고 여기서는 그것을 보여주는 속도만 정한다.
+   */
+  private stepRoll(dt: number) {
+    const a = this.anim!;
+    a.t += dt;
+
+    if (a.stage === "tumble") {
+      // 감속한다 — 처음엔 달그락거리다가 끝에서 하나씩 떨어진다
+      a.next -= dt;
+      if (a.next <= 0) {
+        a.face = 1 + Math.floor(Math.random() * SIDES);
+        const p = Math.min(1, a.t / ROLL.TUMBLE);
+        a.next = ROLL.TICK_FAST + p * p * ROLL.TICK_SLOW;
+        this.sfx.tick();
+      }
+      if (a.t >= ROLL.TUMBLE) {
+        a.stage = "settle"; a.t = 0;
+        // 눈이 확정된다. 심지는 아직 안 움직인다 — 여기가 숨을 참는 자리다.
+        this.lastFace = a.result.face;
+        this.lastFaces = a.result.faces;
+        this.popScale = 1;
+        this.sfx.hit(false);
+      }
+      return;
+    }
+
+    if (a.stage === "settle") {
+      if (a.t >= ROLL.SETTLE) { a.stage = "creep"; a.t = 0; }
+      return;
+    }
+
+    // creep — 불꽃이 옛 자리에서 새 자리로 기어간다
+    const span = a.to - a.from;
+    const p = Math.min(1, a.t / creepDuration(span));
+    a.shown = a.from + span * p;
+    while (a.ticked < Math.floor(a.shown)) { a.ticked++; this.sfx.tick(); }
+    if (p >= 1) this.settleRoll();
   }
 
   hud() {
@@ -140,7 +245,7 @@ export class PushScene implements Scene {
     const rule = e.mod === "none" ? "" : ` &nbsp; <b style="color:${C.accentHi}">${sp.name}</b>`;
     const mult = e.stakeMult > 1 ? ` <span style="opacity:.6">×${e.stakeMult}</span>` : "";
     return `<b>떠넘기기</b> R${e.round}${mult}${rule} &nbsp; ${s} <span style="opacity:.6">(목표 ${OPTS.target})</span>` +
-      ` &nbsp; 게이지 <b>${e.gauge}</b><span style="opacity:.6">${e.rangeHidden ? "(안개)" : `(터짐 ${lo}~${hi})`}</span>` +
+      ` &nbsp; 게이지 <b>${Math.round(this.gaugeShown())}</b><span style="opacity:.6">${e.rangeHidden ? "(안개)" : `(터짐 ${lo}~${hi})`}</span>` +
       ` &nbsp; 이번 판 ${pot}` +
       ` &nbsp; <span style="opacity:.6">스페이스 굴리기 · 엔터 넘기기 · Z 되돌리기 · R 처음부터 · 음소거[M] ${this.sfx.muted ? "🔇" : "🔊"}</span>`;
   }
@@ -234,7 +339,8 @@ export class PushScene implements Scene {
     // ── 타들어가는 심지 ──────────────────────────────────────
     // 불꽃 위치 = 게이지. 뒤는 재, 앞은 성한 심지, 붉은 구간은 임계 범위다.
     // "이 안 어딘가에서 터진다"가 설명 없이 읽힌다 — 쇼츠 2초 판독의 근거.
-    const inDanger = e.gauge >= lo;
+    const shown = this.gaugeShown();
+    const inDanger = shown >= lo;
     const fx = (v: number) => FUSE.x + (Math.min(v, BAR_MAX) / BAR_MAX) * FUSE.w;
     // 심지를 살짝 물결지게 그려 줄처럼 보이게 한다. 진폭은 작게 —
     // 크면 불꽃이 어디쯤인지 흐려져 장식이 판정을 가린다(DESIGN 원칙 5).
@@ -257,8 +363,8 @@ export class PushScene implements Scene {
     // 1. 위험 구간 — 심지 뒤에 굵고 흐린 붉은 띠. 안개 라운드는 이걸 안 그린다.
     if (!e.rangeHidden) strand(lo, hi, C.danger, 22, 0.22);
     // 2. 성한 심지(불꽃 앞) / 타버린 재(불꽃 뒤)
-    strand(e.gauge, BAR_MAX, C.textMuted, 6);
-    strand(0, e.gauge, C.line, 4);
+    strand(shown, BAR_MAX, C.textMuted, 6);
+    strand(0, shown, C.line, 4);
     // 3. 범위 경계 눈금 (안개면 생략)
     for (const v of e.rangeHidden ? [] : [lo, hi]) {
       ctx.strokeStyle = withAlpha(C.danger, 0.85); ctx.lineWidth = 2;
@@ -275,8 +381,9 @@ export class PushScene implements Scene {
     ctx.fillText("💣", BOMB.x, BOMB.y + 1);
     ctx.textBaseline = "alphabetic";
     // 5. 불꽃 — 지글거림은 반지름 흔들림으로 낸다(파티클 배열을 새로 만들지 않는다)
-    if (!e.done) {
-      const flameX = fx(e.gauge), flameY = fy(e.gauge);
+    // 터진 뒤에는 불꽃이 없다 — 심지가 끊겼고 그 자리는 폭발이 맡는다
+    if (!e.done && !this.boom) {
+      const flameX = fx(shown), flameY = fy(shown);
       const jitter = 1 + Math.random() * 0.35;
       const hot = inDanger ? C.danger : C.accentHi;
       glow(ctx, hot, 22, () => {
@@ -307,7 +414,7 @@ export class PushScene implements Scene {
 
     // 7. 숫자 — 그림이 말해도 판단에 필요한 값은 글로도 준다(DESIGN 원칙 4)
     ctx.fillStyle = inDanger ? C.danger : C.text; ctx.font = font(F.xxl); ctx.textAlign = "center";
-    ctx.fillText(String(e.gauge), 320, FUSE.y - 42);
+    ctx.fillText(String(Math.round(shown)), 320, FUSE.y - 42);
     ctx.font = font(F.xs); ctx.fillStyle = C.textMuted;
     ctx.fillText(
       e.rangeHidden
