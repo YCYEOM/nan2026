@@ -358,9 +358,11 @@ describe("굴림 연출 타이밍 (PSH-004)", () => {
   });
 
   it("한 번 굴리는 데 걸리는 시간이 긴장되되 답답하지 않은 범위다", () => {
+    // 처음엔 눈 6이 2.22초였고 "너무 길다"는 지적을 받았다(PSH-005). 상한을 조였다.
     const total = (span: number) => ROLL.TUMBLE + ROLL.SETTLE + creepDuration(span);
-    expect(total(1)).toBeGreaterThan(1.0);   // 즉시 끝나지 않는다
-    expect(total(6)).toBeLessThan(3.0);      // 기다리다 지치지 않는다
+    expect(total(1)).toBeGreaterThan(0.6);   // 즉시 끝나지 않는다
+    expect(total(6)).toBeLessThan(1.5);      // 기다리다 지치지 않는다
+    expect(total(6)).toBeGreaterThan(total(1));   // 비례는 유지된다
   });
 
   it("구르는 눈 간격이 감속한다 — 처음이 빠르고 끝이 느리다", () => {

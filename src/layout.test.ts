@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { textBand, overlaps, checkStack } from "./kits/layout";
 import { SUMMARY_Y, BOARD_BOTTOM, BAR, GLYPH, HINT_Y as ZRO_HINT_Y } from "./scenes/zerosum";
-import { BANNER, TURN_Y } from "./scenes/pushluck";
+import { BANNER, TURN_Y, DIE, POP, GAUGE_Y } from "./scenes/pushluck";
 import { TURN, HINT_Y, TTL_HINT_Y } from "./scenes/mimicry";
 
 const H = 480;   // 캔버스 높이
@@ -63,18 +63,30 @@ describe("제로섬 세로 배치", () => {
 });
 
 describe("떠넘기기 세로 배치", () => {
-  it("가운데 열(점수판·배너·차례 줄·주사위)이 서로 안 겹친다", () => {
+  it("가운데 열(점수판·배너·차례 줄·주사위·게이지 숫자)이 서로 안 겹친다", () => {
     // 차례 줄이 baseline 92·F22 이던 때 배너(56~82)를 7.6px 파고들었다.
     // 제목은 왼쪽 정렬(x 16~96)이라 가로가 안 겹치므로 이 스택에서 뺀다 —
     // 세로만 보고 한 줄로 세우면 실제로 안 겹치는 것까지 걸린다.
+    //
+    // **주사위는 최대 팝으로 잰다.** 예전엔 `146 - 34` 처럼 손으로 적은 평상시 기하만
+    // 봤고 게이지 숫자는 스택에 아예 없었다 — 그래서 주사위가 게이지 숫자를 평상시
+    // 4.4px · 팝일 때 16.3px 파고드는 것을 통과시켰다(PSH-005). 검사에 없는 것은 안 깨진다.
+    const r = DIE.r * (1 + POP);
     const bad = checkStack([
       { name: "점수 숫자", ...textBand(26, F.md) },
       { name: "목표·이번 판", ...textBand(44, F.xs) },
       { name: "배너", top: BANNER.y, bottom: BANNER.y + BANNER.h },
       { name: "차례 줄", ...textBand(TURN_Y, F.xl) },
-      { name: "주사위", top: 146 - 34, bottom: 146 + 34 },
+      { name: "주사위(최대 팝)", top: DIE.y - r, bottom: DIE.y + r },
+      { name: "게이지 숫자", ...textBand(GAUGE_Y, F.xxl) },
     ], H);
     expect(bad).toEqual([]);
+  });
+
+  it("게이지 숫자가 심지 위험 띠 위에 든다", () => {
+    // 위험 띠는 lineWidth 22 로 심지 경로(FUSE.y 240 ± 물결 5) 위에 그려진다.
+    const dangerTop = 240 - 5 - 11;
+    expect(textBand(GAUGE_Y, F.xxl).bottom).toBeLessThan(dangerTop);
   });
 
   it("제목은 왼쪽 정렬이라 가운데 열과 가로로 분리돼 있다", () => {

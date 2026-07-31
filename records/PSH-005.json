@@ -1,0 +1,136 @@
+{
+  "task_id": "PSH-005",
+  "summary_of_changes": "떠넘기기 굴림 연출을 약 60% 로 단축하고(눈 6 기준 2.22s → 1.35s) 주사위·게이지 숫자 겹침을 고쳤다. 주사위 `r 34→30`·`y 146→142`, 팝 `+0.35→+0.22`, 게이지 숫자 baseline `198→210`. `DIE`·`POP`·`GAUGE_Y` 를 export 해 `layout.test.ts` 의 떠넘기기 스택이 **소스를 따라가고 최대 팝으로** 재도록 넓혔다. 엔진은 여전히 무변경.",
+  "why": "플레이 지적 둘 — \"너무 길어 조금 빠르게\", \"ui 글자가 겹쳐\"(스크린샷). 겹침은 계산으로 확인했다: 주사위 원(평상시 112~180, 팝 100.1~191.9)이 게이지 숫자(175.6~203.6)를 평상시 4.4px·팝일 때 16.3px 파고들었고 차례 줄과도 0.3px 스쳤다.",
+  "files_changed": [
+    "src/scenes/pushluck.ts (ROLL 4값, DIE/POP/GAUGE_Y export 및 적용)",
+    "src/layout.test.ts (떠넘기기 스택에 게이지 숫자 추가 · 주사위를 최대 팝으로 · 심지 위험 띠 검사 1건 추가)",
+    "src/pushluck.test.ts (총 시간 상한 조임 + 비례 유지 검사)",
+    "tasks/PSH-005.md (신규 — 작업 명세)",
+    "docs/GAME_SPEC.md (연출 단계표 시간·노브)",
+    "docs/DECISIONS.md (07-31 결정 3행)"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "auto",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (225개)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "여유 검산 — 차례 줄↔주사위(팝) 5.0px · 주사위↔게이지 숫자 9.0px · 게이지 숫자↔심지 위험 띠 8.4px",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "연출 총 시간 — 눈 1 0.93s · 눈 6 1.35s (전 1.45·2.22)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "역검증 — 옛 기하(주사위 최대 팝 ↔ 게이지 숫자)를 새 검사에 넣으면 겹침이 검출된다",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "엔진 무변경 — git diff 0줄",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass gate pre-task PSH-005",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check (3/3)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan protect verify (5/5)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass nan trace validate",
+        "level": 1,
+        "status": "pass"
+      }
+    ],
+    "not_verified": [
+      "**화면으로 확인 안 했다.** `textBand` 의 0.8/0.2 는 근사라 사람이 봐야 끝난다.",
+      "1.35초(눈 6)가 적절한지 — 여전히 긴지, 이제 너무 짧은지.",
+      "주사위가 r 34 → 30 으로 작아진 것이 punchline 을 약하게 만드는지.",
+      "팝이 +0.35 → +0.22 로 줄어든 것이 밋밋한지.",
+      "반지름 30 이 F.huge(34) 숫자를 담기에 충분한지 — 산술로는 들지만 실제 글리프는 다를 수 있다.",
+      "연발 라운드에서 주사위 안 합산 문구(`y+18`)가 작아진 원 안에 여전히 드는지."
+    ],
+    "rendered_verification": false
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0,
+    "note": "critic 패스 미실행."
+  },
+  "known_limitations": [
+    "이번 변경분에 critic 패스를 돌리지 않았다.",
+    "**같은 종류의 겹침이 여섯 번째다**(TASK-010~013, TASK-014, 이번). 이번 원인은 새롭다 — 검사 스택에 **항목이 빠져 있었고**(게이지 숫자), 있는 항목도 **소스를 안 따라가는 하드코딩**(`146 - 34`)에 **최대 크기가 아닌 평상시 기하**였다. `kits/layout` 을 쓰고 있어도 무엇을 넣느냐가 여전히 사람 판단이다.",
+    "**연출이 없었으면 이 겹침을 계속 못 봤을 것이다.** 평상시 4.4px 겹침은 처음부터 있었는데 주사위가 잠깐 스쳐 지나가서 아무도 못 봤다.",
+    "다른 게임 6종의 겹침 검사 범위는 안 봤다. 같은 종류(항목 누락·하드코딩·최대 크기 미반영)가 남아 있을 가능성이 크다 — 이번 작업 범위 밖으로 뒀다.",
+    "타이밍 값이 여전히 근거 없다. 60% 라는 비율도 \"조금 빠르게\"를 해석한 것이지 측정한 값이 아니다.",
+    "가로 겹침은 여전히 검사 안 한다."
+  ],
+  "out_of_scope_findings": [
+    "겹침 검사 스택이 게임마다 커버리지가 제각각이다. **씬별로 '무엇이 스택에 들어가야 하는가' 목록이 없다** — 공통 절차가 필요하다.",
+    "움직이거나 크기가 변하는 요소(팝·연출)는 **최대 크기로** 재야 한다는 규칙이 어디에도 안 적혀 있다."
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md"
+    ],
+    "detail": [
+      "docs/GAME_SPEC.md — 연출 단계표 시간 갱신 + 단축 근거 + 노브(주사위 기하 포함)",
+      "docs/DECISIONS.md — 07-31 결정 3행 (단축, 겹침 수정, 검사 범위 확장)"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "**검사에 없는 것은 안 깨진다.** 떠넘기기 스택에 게이지 숫자가 아예 없어서 4.4px 겹침이 처음부터 통과했다. `checkStack` 을 쓰는 것과 **무엇을 넣을지 고르는 것**은 별개이고, 후자가 여전히 사람 판단이다.",
+      "**검사가 소스를 따라가야 한다.** 주사위를 `146 - 34` 로 손으로 적어놨더니 씬의 값이 바뀌어도 검사는 옛 값을 봤다. 이제 `DIE`·`POP` 을 export 해 같은 출처를 본다 — 그리기와 히트박스가 같은 `layout()` 을 써야 하는 것과 같은 이유다.",
+      "**크기가 변하는 요소는 최대 크기로 재야 한다.** 팝이 있는 주사위를 평상시 기하로 검사하면 가장 위험한 순간을 안 보는 것이다. 연출·애니메이션이 늘수록 이 함정이 커진다.",
+      "**연출을 넣으면 그 전에는 안 보이던 것이 보인다** — PSH-004 에서 한 번 배우고 여기서 또 나왔다. 평상시 4.4px 겹침은 주사위가 잠깐 스쳐 지나가서 아무도 못 봤고, 오래 떠 있게 되자 드러났다. **짧게 지나가는 것은 검사도 눈도 놓친다.**",
+      "**빠르게 해달라는 요청에 노브 하나만 만지면 의도가 깨진다.** `PER_PIP` 만 줄이면 큰 눈의 긴장이 사라지고 `TUMBLE` 만 줄이면 굴러가는 느낌이 사라진다. 넷을 같은 비율로 줄여야 연출의 구조가 남는다."
+    ]
+  },
+  "rollback": {
+    "method": "`src/scenes/pushluck.ts` 의 `ROLL` 을 0.85·0.35·0.17·0.25 로, `DIE` 를 `{x:320,y:146,r:34}` 로, `POP` 을 0.35 로, `GAUGE_Y` 를 `FUSE.y - 42`(198)로 되돌리고 `DIE`·`POP`·`GAUGE_Y` 의 export 를 지운다. `src/layout.test.ts` 의 떠넘기기 스택에서 게이지 숫자를 빼고 주사위를 `146 ± 34` 로 되돌리며 심지 위험 띠 검사를 제거한다. `src/pushluck.test.ts` 의 총 시간 상한을 1.0~3.0 으로 되돌린다. GAME_SPEC 단계표·노브와 DECISIONS 3행을 고친다. 엔진을 안 건드렸으므로 규칙에 영향이 없다.",
+    "tested": false
+  },
+  "design": {
+    "design_md_read": true,
+    "principles_followed": [
+      "원칙 5 (장식이 판정을 가리지 않는다) — 팝을 +0.35 → +0.22 로 줄인 근거가 이것이다. 0.35 는 차례 줄을 스쳤다",
+      "Purpose (판독성 최우선) — 겹침을 없애려고 주사위를 줄였다. punchline 크기보다 안 겹치는 것이 먼저다"
+    ],
+    "tokens_only": true,
+    "rendered_verification": false,
+    "note": "주사위 기하(`DIE`·`POP`)와 게이지 숫자 위치(`GAUGE_Y`)를 export 해 검사가 소스를 따라간다. 씬 상수를 테스트에 하드코딩하면 값이 갈라지고, 갈라진 검사는 통과해도 아무것도 증명하지 않는다."
+  }
+}

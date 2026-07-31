@@ -22,7 +22,13 @@ const BOMB = { x: 546, y: 240, r: 26 };
 // baseline 만 보고 쌓으면 글자가 위로 뻗어 겹친다 — kits/layout 의 textBand 로 검산한다.
 export const BANNER = { x: 140, y: 54, w: 360, h: 22 };
 export const TURN_Y = 96;
-const DIE = { x: 320, y: 146, r: 34 };        // 굴린 눈을 크게 보여주는 자리
+// 굴린 눈을 크게 보여주는 자리. 위는 차례 줄(아래끝 100.4), 아래는 게이지 숫자다 —
+// 위아래가 막혀 있어 겹침이 나면 주사위가 줄어드는 것이 유일하게 빈 자리다.
+export const DIE = { x: 320, y: 142, r: 30 };
+/** 눈이 확정될 때 튀어나오는 배율. **장식이 판정을 가리면 안 된다**(DESIGN 원칙 5) — 0.35 는 차례 줄을 스쳤다. */
+export const POP = 0.22;
+/** 게이지 숫자 baseline. 주사위(최대 팝 178.6)와 심지 위험 띠(224) 사이. */
+export const GAUGE_Y = 210;
 const BTN_ROLL = { x: 96, y: 386, w: 200, h: 54 };
 const BTN_PASS = { x: 344, y: 386, w: 200, h: 54 };
 // 되돌리기는 그 규칙의 라운드에만, 남았을 때만 나타난다 — 상시 조작이 아니라 조건부 능력이다.
@@ -39,10 +45,13 @@ interface Boom { player: number; blame: Blame; lost: number; banked: number; fac
  * 엔진은 한 줄도 안 건드리므로 되돌리기·시드 결정성이 그대로다.
  */
 export const ROLL = {
-  TUMBLE: 0.85,     // 눈이 굴러가는 시간
-  SETTLE: 0.35,     // 눈이 확정되고 잠깐 머문다 — 여기서 숨을 참는다
-  PER_PIP: 0.17,    // 심지가 눈 하나만큼 타는 시간
-  CREEP_MIN: 0.25,
+  // 처음 넣을 때 눈 6이 2.22초였고 "너무 길다"는 지적을 받았다(PSH-005).
+  // 넷을 같은 비율로 줄였다 — PER_PIP 만 줄이면 큰 눈의 긴장이 사라지고
+  // TUMBLE 만 줄이면 굴러가는 느낌이 사라진다. 지금은 눈 6에 1.35초.
+  TUMBLE: 0.55,     // 눈이 굴러가는 시간
+  SETTLE: 0.2,      // 눈이 확정되고 잠깐 머문다 — 여기서 숨을 참는다
+  PER_PIP: 0.1,     // 심지가 눈 하나만큼 타는 시간
+  CREEP_MIN: 0.18,
   TICK_FAST: 0.04,  // 구르는 초반 눈 바뀌는 간격
   TICK_SLOW: 0.2,   // 끝에서 이만큼까지 느려진다
 } as const;
@@ -320,7 +329,7 @@ export class PushScene implements Scene {
 
     // 굴린 눈 — 크게. punchline 시각이다.
     if (this.lastFace > 0) {
-      const s = 1 + this.popScale * 0.35;
+      const s = 1 + this.popScale * POP;
       ctx.save(); ctx.translate(DIE.x, DIE.y); ctx.scale(s, s);
       ctx.fillStyle = withAlpha(C.text, 0.08);
       ctx.beginPath(); ctx.arc(0, 0, DIE.r, 0, Math.PI * 2); ctx.fill();
@@ -414,7 +423,7 @@ export class PushScene implements Scene {
 
     // 7. 숫자 — 그림이 말해도 판단에 필요한 값은 글로도 준다(DESIGN 원칙 4)
     ctx.fillStyle = inDanger ? C.danger : C.text; ctx.font = font(F.xxl); ctx.textAlign = "center";
-    ctx.fillText(String(Math.round(shown)), 320, FUSE.y - 42);
+    ctx.fillText(String(Math.round(shown)), 320, GAUGE_Y);
     ctx.font = font(F.xs); ctx.fillStyle = C.textMuted;
     ctx.fillText(
       e.rangeHidden
