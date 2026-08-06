@@ -2,10 +2,11 @@
 //
 // **이 검사가 무엇을 못 보는지가 무엇을 보는지만큼 중요하다.**
 // 원근투영 아래에서 움직이는 물체(사람 둘 · 총알 여럿 · 조각 14개)의 겹침은
-// 산술로 못 잡는다. 여기서 막을 수 있는 것은 셋뿐이다 —
-//   1) 몸통 폭 = 판정 지름 (요격이 거짓말을 안 하는가)
-//   2) 2D 오버레이 스택 (제목·상태줄·결산은 3D 가 아니다)
-//   3) 투영된 판이 캔버스 안인가
+// 산술로 못 잡는다. 여기서 막을 수 있는 것은 넷뿐이다 —
+//   1) **조작 방향** (누른 대로 움직이는가) ← 카메라를 반대편에 놓고 12개를 통과시킨 뒤 추가했다
+//   2) 몸통 폭 = 판정 지름 (요격이 거짓말을 안 하는가)
+//   3) 2D 오버레이 스택 (제목·상태줄·결산은 3D 가 아니다)
+//   4) 투영된 판이 캔버스 안인가
 // 나머지는 사람이 본다.
 import { describe, it, expect } from "vitest";
 import { K, ARENA, PLATE_LV, TOP_LV } from "./systems/dodge";
@@ -16,22 +17,51 @@ import { F } from "./ui/tokens";
 /** 판 위 여러 자리 — 가깝고 먼 곳을 섞는다. 원근이라 자리마다 배율이 다르다. */
 const SPOTS = [
   { x: ARENA.x, y: ARENA.y },
-  { x: ARENA.x, y: ARENA.y - 150 },   // 가까운 쪽 (카메라가 엔진 y 작은 쪽에 있다)
-  { x: ARENA.x, y: ARENA.y + 150 },   // 먼 쪽
+  { x: ARENA.x, y: ARENA.y + 150 },   // 가까운 쪽 (카메라는 엔진 y 큰 쪽에 있다)
+  { x: ARENA.x, y: ARENA.y - 150 },   // 먼 쪽
   { x: ARENA.x - 150, y: ARENA.y },
   { x: ARENA.x + 150, y: ARENA.y },
 ];
 
+/**
+ * **조작 방향 — 이 검사가 없어서 카메라를 반대편에 놓고도 12개 검사가 다 통과했다.**
+ *
+ * 투영이 기하학적으로 맞아도 카메라가 판 반대편에 있으면 엔진 +x 가 화면 왼쪽,
+ * 엔진 +y 가 화면 위로 간다. 즉 **가로·세로 조작이 둘 다 뒤집힌다.**
+ * 판 경계도, 몸통 폭도, 원근도 전부 정상이라 어느 검사도 안 걸렸다 —
+ * 사람이 방향키를 눌러보고서야 알았다.
+ *
+ * 화면과 입력이 맞는지는 **투영의 내부 성질이 아니라 축의 방향**이다. 그것만 본다.
+ */
+describe("조작 방향 — 누른 대로 움직인다", () => {
+  const C0 = { x: ARENA.x, y: ARENA.y };
+  const at = (dx: number, dy: number) => world({ x: C0.x + dx, y: C0.y + dy })!;
+
+  it("오른쪽 키(엔진 +x)는 화면 오른쪽이다", () => {
+    expect(at(100, 0).x).toBeGreaterThan(at(0, 0).x);
+    expect(at(-100, 0).x).toBeLessThan(at(0, 0).x);
+  });
+
+  it("아래쪽 키(엔진 +y)는 화면 아래다", () => {
+    expect(at(0, 100).y).toBeGreaterThan(at(0, 0).y);
+    expect(at(0, -100).y).toBeLessThan(at(0, 0).y);
+  });
+
+  it("카메라가 엔진 y 큰 쪽에 선다 — 반대편이면 두 축이 다 뒤집힌다", () => {
+    expect(CAM.eye[2]).toBeGreaterThan(0);
+  });
+});
+
 describe("투영", () => {
   it("카메라 뒤는 안 그린다", () => {
-    // 카메라는 z 음수 쪽에서 +z 를 본다 — 뒤로 더 가면 시야 밖이다
-    expect(project(0, 0, 100000)).not.toBeNull();    // 앞쪽 먼 곳은 그린다
-    expect(project(0, 0, -100000)).toBeNull();       // 카메라 뒤는 없다
+    // 카메라는 z 양수 쪽에서 -z 를 본다 — 뒤로 더 가면 시야 밖이다
+    expect(project(0, 0, -100000)).not.toBeNull();   // 앞쪽 먼 곳은 그린다
+    expect(project(0, 0, 100000)).toBeNull();        // 카메라 뒤는 없다
   });
 
   it("멀수록 작아진다 — 원근이 실제로 든다", () => {
-    const near = world({ x: ARENA.x, y: ARENA.y - 150 })!;
-    const far = world({ x: ARENA.x, y: ARENA.y + 150 })!;
+    const near = world({ x: ARENA.x, y: ARENA.y + 150 })!;
+    const far = world({ x: ARENA.x, y: ARENA.y - 150 })!;
     expect(far.s).toBeLessThan(near.s);
     expect(far.y).toBeLessThan(near.y);              // 먼 쪽이 화면 위다
   });
@@ -69,8 +99,8 @@ describe("몸통 폭 = 판정 지름 — 요격이 거짓말을 하면 안 된�
   });
 
   it("가까울수록 크게 그려진다 — 배율이 깊이를 따라간다", () => {
-    const near = bodyScale({ x: ARENA.x, y: ARENA.y - 150 });
-    const far = bodyScale({ x: ARENA.x, y: ARENA.y + 150 });
+    const near = bodyScale({ x: ARENA.x, y: ARENA.y + 150 });
+    const far = bodyScale({ x: ARENA.x, y: ARENA.y - 150 });
     expect(near).toBeGreaterThan(far);
   });
 
@@ -105,7 +135,7 @@ describe("판이 캔버스 안에 든다", () => {
   });
 
   it("카메라가 판을 내려다본다 — 기울기가 실제로 있다", () => {
-    const pitch = Math.atan2(CAM.eye[1], -CAM.eye[2]) * 180 / Math.PI;
+    const pitch = Math.atan2(CAM.eye[1], Math.abs(CAM.eye[2])) * 180 / Math.PI;
     expect(pitch).toBeGreaterThan(20);   // 너무 눕히면 뒤가 안 보인다
     expect(pitch).toBeLessThan(70);      // 너무 세우면 그냥 2D 탑다운이다
   });

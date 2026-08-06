@@ -29,12 +29,18 @@ export const RECAP = { time: 150, rows: [206, 238] as const, why: 296, restart: 
 const FLASH = 0.9;
 
 /**
- * 카메라. 판 앞·위에서 중앙을 본다. 값의 조건은 둘뿐이다 —
+ * 카메라. 판 앞·위에서 중앙을 본다.
+ *
+ * **`eye.z` 는 양수여야 한다.** 음수 쪽(엔진 y 가 작은 쪽)에 두면 판을 반대편에서 보게 되어
+ * 엔진 +x 가 화면 왼쪽, 엔진 +y 가 화면 위로 간다 — **조작이 가로·세로 둘 다 뒤집힌다.**
+ * 투영은 그래도 기하학적으로 맞으므로 검사가 못 잡는다. 사람이 눌러봐야 안다.
+ *
+ * 값의 조건은 둘뿐이다 —
  * **판 전체가 캔버스 안에 든다**, 그리고 **위아래 오버레이와 안 겹친다.**
  * 검사가 이 둘을 본다.
  */
 export const CAM = {
-  eye: [0, 270, -340] as const,
+  eye: [0, 270, 340] as const,
   at: [0, 10, 0] as const,
   fl: 560,      // 초점거리(px). 38° 기울기에서 판이 y 66..428 을 쓴다
   cx: 320,      // 화면 원점
@@ -83,8 +89,8 @@ export const SUIT_HALF = 16;
 
 const TAU = Math.PI * 2;
 const plateA = (i: number) => [(i / PLATES) * TAU + 0.012, ((i + 1) / PLATES) * TAU - 0.012];
-/** 카메라 쪽 조각 — 옆면이 보인다. 두께가 있어야 판이 떠 있는 물체로 읽힌다. */
-const nearSide = (i: number) => Math.sin(((i + 0.5) / PLATES) * TAU) < 0.25;
+/** 카메라 쪽(엔진 y 가 큰 쪽) 조각 — 옆면이 보인다. 두께가 있어야 떠 있는 물체로 읽힌다. */
+const nearSide = (i: number) => Math.sin(((i + 0.5) / PLATES) * TAU) > -0.25;
 const THICK = 14;
 
 type Layer = { z: number; draw: () => void };

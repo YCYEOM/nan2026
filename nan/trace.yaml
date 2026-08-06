@@ -256,6 +256,7 @@ tests:
   - TEST-D3D-LAYOUT         # dodge3d.test 2D 오버레이 스택 + 투영된 판 경계가 캔버스 안
   - TEST-D3D-MENU-CEILING   # menu.test 항목이 여전히 7개 — fits(8) === false (교체지 추가가 아니다)
   - TEST-D3D-PROJECTION     # dodge3d.test 원근 3종 — 카메라 뒤는 없다 / 멀수록 작다 / 높이는 위로
+  - TEST-D3D-CONTROL-AXIS   # dodge3d.test 조작 방향 — 오른쪽 키가 화면 오른쪽인가 (반전 버그 회귀)
   - TEST-D3D-DILEMMA-FAILS  # dodge3d/dodge.test it.fails — 딜레마 회귀를 지우지 않고 빨갛게 남긴다
 
 evidence:
@@ -669,6 +670,8 @@ links:
   - { from: TEST-D3D-LAYOUT, to: EVD-SUITE }
   - { from: TEST-D3D-MENU-CEILING, to: EVD-SUITE }
   - { from: TEST-D3D-PROJECTION, to: EVD-SUITE }
+  - { from: TEST-D3D-CONTROL-AXIS, to: EVD-SUITE }
+  - { from: DEC-D3D-CAMERA, to: TEST-D3D-CONTROL-AXIS }
   - { from: TEST-D3D-DILEMMA-FAILS, to: EVD-SUITE }
 
   # 구현에서 드러난 것들 (DGE-002·003 실행 중)
