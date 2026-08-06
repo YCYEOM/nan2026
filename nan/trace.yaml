@@ -20,6 +20,7 @@ concepts:
   - CON-004                 # nan/concepts/CON-004.yaml — 승인 89/100 (approvedBy: yeomyooncheol)
   - CON-005                 # nan/concepts/CON-005.yaml — 승인 78/100 (approvedBy: yeomyooncheol)
   - CON-006                 # nan/concepts/CON-006.yaml — 승인 88/100 (approvedBy: yeomyooncheol)
+  - CON-007                 # nan/concepts/CON-007.yaml — 승인 90/100, CON-006 파생(3D·조각 발판·복구)
 
 decisions:
   - DEC-RELAY               # DECISIONS 07-27 리허설4 채택: 라운드로빈 턴 릴레이
@@ -76,6 +77,20 @@ decisions:
   - DEC-DGE-DILEMMA-TEST    # DECISIONS 07-31 딜레마 자체를 회귀 테스트로 못 박는다
   - DEC-DGE-SHAPE-TOO       # DECISIONS 07-31 총알을 색 + 모양으로 구분 — 색이 곧 생사라 색맹 대응이 필수
   - DEC-DGE-SPLIT-KEYS      # DECISIONS 07-31 동시 실시간이라 P1 WASD · P2 방향키로 가른다
+  - DEC-D3D-TILTED          # DECISIONS 08-06 3D 전환 — 기울인 아레나. 어깨 뒤 3인칭은 컨셉과 양립 불가라 기각
+  - DEC-D3D-PLATES          # DECISIONS 08-06 아레나가 원 하나 → 부채꼴 14개 × 단계 4개 배열
+  - DEC-D3D-RESTORE         # DECISIONS 08-06 막으면 땅이 돌아온다 — 마지막으로 막은 자리의 조각이 솟는다
+  - DEC-D3D-RESTORE-LOSES   # DECISIONS 08-06 불변식: 판당 복구 단계 < 판당 붕괴 단계. 지연이지 역전이 아니다
+  - DEC-D3D-MEASURED-GAUGE  # DECISIONS 08-06 RESTORE_BLOCKS 를 손으로 고르지 않고 측정에서 유도한다
+  - DEC-D3D-RANDOM-COLLAPSE # DECISIONS 08-06 조각을 무작위로 무너뜨린다 — 바깥부터면 그냥 작아지는 원이 된다
+  - DEC-D3D-SUIT            # DECISIONS 08-06 원통 → 우주복 작업자. 목숨 3단계가 실루엣이다
+  - DEC-D3D-HELMET-SHAPE    # DECISIONS 08-06 헬멧 둥근/각진 — 총알의 원·네모와 같은 축
+  - DEC-D3D-NO-WHITE        # DECISIONS 08-06 흰 우주복 금지 — 같은 색상의 어두운 파생(C.suit)
+  - DEC-D3D-BRIGHTNESS      # DECISIONS 08-06 새 원칙: 밝기가 곧 판정 관여도 (화면 4층) → DESIGN.md 원칙 7
+  - DEC-D3D-DEPTH-DEBT      # DECISIONS 08-06 3D 거리 오판을 바닥 예고선·발밑 그림자·판정 링으로 갚는다
+  - DEC-D3D-MENU-SWAP       # DECISIONS 08-06 메뉴 7항목 천장 — 2D 와 병행 불가, 교체한다
+  - DEC-D3D-SPLIT-TASKS     # DECISIONS 08-06 엔진(DGE-002) → 렌더(DGE-003). 규칙을 2D 에서 먼저 검증
+  - DEC-D3D-REMEASURE       # DECISIONS 08-06 딜레마 표(60/130/220px)를 재측정한다 — 판이 원이 아니게 됐다
 
 requirements:
   - REQ-TURN-VISIBLE        # 다음 비트 담당을 항상 화면에서 알 수 있다 (리드인 포함)
@@ -121,6 +136,14 @@ requirements:
   - REQ-DGE-NO-FREE-SPACING # 붙어 있기도 떨어져 있기도 공짜가 아니다
   - REQ-DGE-BLAME-COLOR     # 못 막은 색 탄은 그 색 주인의 몫으로 남는다
   - REQ-DGE-COLORBLIND      # 색맹과 시연 화면에서도 총알 3종이 구분된다
+  - REQ-D3D-PLATE-CONFINE   # 그 사람 각도의 조각 반지름으로 가둔다 — 판이 방향마다 다르다
+  - REQ-D3D-RESTORE-CAUSAL  # 막은 자리의 조각이 돌아온다 — 원인과 보상이 한 프레임에 있다
+  - REQ-D3D-MUST-END        # 복구가 붕괴를 못 이긴다 — 판은 반드시 끝난다
+  - REQ-D3D-SHAPE-IS-RECORD # 판 모양이 그 판의 기록이다 — 상황 변주가 플레이 결과에서 나온다
+  - REQ-D3D-HITBOX-HONEST   # 몸통 폭 = 판정 지름. 실루엣이 판정보다 크면 요격이 거짓말이 된다
+  - REQ-D3D-DEPTH-READS     # 3D 에서도 착탄점과 거리가 읽힌다 (바닥 예고선·그림자·판정 링)
+  - REQ-D3D-BULLET-BRIGHTEST  # 화면에서 가장 밝은 것은 언제나 총알이다 (DESIGN.md 원칙 7)
+  - REQ-D3D-LIFE-IS-BODY    # 남은 목숨이 실루엣으로 읽힌다 — 상대가 급한 것이 보인다
 
 scenarios:
   - SCN-RELAY-CLEAR         # 두 사람이 번갈아 32비트를 완주해 스테이지 클리어
@@ -157,6 +180,11 @@ scenarios:
   - SCN-DGE-NEUTRAL-SPLIT   # 붙어 있다가 주인 없는 탄 한 발에 둘 다 걸릴 뻔해 흩어진다
   - SCN-DGE-TOO-FAR         # 떨어져 있다가 막으러 못 가서 색 탄이 샌다
   - SCN-DGE-SHRINK-SQUEEZE  # 아레나가 좁아져 강제로 가까워지고 주인 없는 탄이 무서워진다
+  - SCN-D3D-LAND-RETURNS    # 몸을 던져 막은 그 자리에서 조각이 솟아 도망칠 자리가 생긴다
+  - SCN-D3D-CRESCENT        # 한쪽만 지켜 판이 초승달이 되고, 파인 쪽으로 몰려 죽는다
+  - SCN-D3D-PLATE-DROPS     # 발밑 조각이 흔들리다 떨어져 안쪽으로 밀려 들어온다
+  - SCN-D3D-COMEBACK        # 거의 다 무너진 판에서 연속 요격으로 땅을 되찾는다
+  - SCN-D3D-LAST-LIFE-SEEN  # 상대 바이저가 붉게 점멸하는 것을 보고 막으러 간다
 
 tests:
   - TEST-RELAY-ROTATION     # rhythm.test "차례는 라운드로빈으로 돈다"
@@ -214,6 +242,13 @@ tests:
   - TEST-DGE-CURVE          # dodge.test 난이도 4종이 하한/상한에서 멈춘다 + 아레나 가둠
   - TEST-DGE-DILEMMA        # dodge.test "붙어 있으면 주인 없는 탄이, 떨어지면 색 탄이 더 죽인다"
   - TEST-DGE-LAYOUT         # dodge.test 정적 배치 스택 (움직이는 물체는 못 본다)
+  - TEST-D3D-PLATE-CONFINE  # dodge.test 각도별 조각 반지름으로 가둔다 + 무너지면 밀려 들어온다
+  - TEST-D3D-RESTORE        # dodge.test 요격 N회마다 마지막으로 막은 자리의 조각이 한 단계 오른다
+  - TEST-D3D-RESTORE-LOSES  # dodge.test 불변식 — 판당 복구 단계 < 판당 붕괴 단계 (시뮬레이션)
+  - TEST-D3D-DILEMMA-V2     # dodge.test 재측정한 딜레마 표 — 조각 판에서도 어느 거리도 공짜가 아니다
+  - TEST-D3D-HITBOX         # dodge3d.test 몸통 폭 = 투영된 판정 지름
+  - TEST-D3D-LAYOUT         # dodge3d.test 2D 오버레이 스택 + 투영된 판 경계가 캔버스 안
+  - TEST-D3D-MENU-CEILING   # menu.test 항목이 여전히 7개 — fits(8) === false (교체지 추가가 아니다)
 
 evidence:
   - EVD-PLAYTEST-MASH       # evidence/playtest-2026-07-29-mash.md — 연타 난이도 합격(스테이지 4까지)
@@ -565,3 +600,64 @@ links:
   - { from: TEST-DGE-DILEMMA, to: EVD-SUITE }
   - { from: TEST-DGE-LAYOUT, to: EVD-SUITE }
   - { from: CON-006, to: EVD-BUILD }
+
+  # 총알피하기 3D (CON-007 · DGE-002 엔진 → DGE-003 렌더)
+  # 색 규칙은 CON-006 것을 그대로 물려받는다. 여기서 자라는 것은 판·화면·사람이다.
+  - { from: THEME-DODGE, to: CON-007 }
+  - { from: CON-006, to: CON-007 }             # 파생이다 — 색 판정은 한 줄도 안 바뀐다
+  - { from: CON-007, to: DEC-D3D-TILTED }
+  - { from: CON-007, to: DEC-D3D-PLATES }
+  - { from: CON-007, to: DEC-D3D-RESTORE }
+  - { from: CON-007, to: DEC-D3D-SUIT }
+  - { from: CON-007, to: DEC-D3D-SPLIT-TASKS }
+  - { from: DEC-D3D-PLATES, to: DEC-D3D-RANDOM-COLLAPSE }   # 바깥부터면 조각으로 나눈 뜻이 없다
+  - { from: DEC-D3D-PLATES, to: DEC-D3D-REMEASURE }         # 판이 원이 아니면 딜레마 값이 바뀐다
+  - { from: DEC-D3D-RESTORE, to: DEC-D3D-RESTORE-LOSES }    # 안 끝나는 게임을 구조로 막는다
+  - { from: DEC-D3D-RESTORE, to: DEC-D3D-MEASURED-GAUGE }   # 임계를 손으로 고르지 않는다
+  - { from: DEC-D3D-SUIT, to: DEC-D3D-HELMET-SHAPE }
+  - { from: DEC-D3D-SUIT, to: DEC-D3D-NO-WHITE }
+  - { from: DEC-D3D-NO-WHITE, to: DEC-D3D-BRIGHTNESS }      # 한 게임의 해법이 원칙이 됐다
+  - { from: DEC-D3D-TILTED, to: DEC-D3D-DEPTH-DEBT }        # 3D 가 만든 빚을 셋으로 갚는다
+  - { from: DEC-D3D-TILTED, to: DEC-D3D-MENU-SWAP }
+  - { from: DEC-DGE-SHAPE-TOO, to: DEC-D3D-HELMET-SHAPE }   # 총알의 원·네모가 캐릭터로 이어진다
+
+  - { from: DEC-D3D-PLATES, to: REQ-D3D-PLATE-CONFINE }
+  - { from: DEC-D3D-RESTORE, to: REQ-D3D-RESTORE-CAUSAL }
+  - { from: DEC-D3D-RESTORE-LOSES, to: REQ-D3D-MUST-END }
+  - { from: DEC-D3D-MEASURED-GAUGE, to: REQ-D3D-MUST-END }
+  - { from: DEC-D3D-RANDOM-COLLAPSE, to: REQ-D3D-SHAPE-IS-RECORD }
+  - { from: DEC-D3D-RESTORE, to: REQ-D3D-SHAPE-IS-RECORD }
+  - { from: DEC-D3D-SUIT, to: REQ-D3D-HITBOX-HONEST }
+  - { from: DEC-D3D-SUIT, to: REQ-D3D-LIFE-IS-BODY }
+  - { from: DEC-D3D-DEPTH-DEBT, to: REQ-D3D-DEPTH-READS }
+  - { from: DEC-D3D-DEPTH-DEBT, to: REQ-D3D-HITBOX-HONEST }
+  - { from: DEC-D3D-BRIGHTNESS, to: REQ-D3D-BULLET-BRIGHTEST }
+  - { from: DEC-D3D-NO-WHITE, to: REQ-D3D-BULLET-BRIGHTEST }
+  - { from: DEC-D3D-HELMET-SHAPE, to: REQ-DGE-COLORBLIND }  # 색맹 대응이 캐릭터까지 간다
+
+  - { from: REQ-D3D-RESTORE-CAUSAL, to: SCN-D3D-LAND-RETURNS }
+  - { from: REQ-D3D-PLATE-CONFINE, to: SCN-D3D-PLATE-DROPS }
+  - { from: REQ-D3D-SHAPE-IS-RECORD, to: SCN-D3D-CRESCENT }
+  - { from: REQ-D3D-MUST-END, to: SCN-D3D-COMEBACK }
+  - { from: REQ-D3D-RESTORE-CAUSAL, to: SCN-D3D-COMEBACK }
+  - { from: REQ-D3D-LIFE-IS-BODY, to: SCN-D3D-LAST-LIFE-SEEN }
+  - { from: REQ-D3D-DEPTH-READS, to: SCN-D3D-LAND-RETURNS }
+  - { from: REQ-D3D-BULLET-BRIGHTEST, to: SCN-D3D-LAST-LIFE-SEEN }
+  - { from: REQ-D3D-HITBOX-HONEST, to: SCN-DGE-SAVE-MATE }  # 요격 장면이 3D 에서도 정직해야 한다
+
+  - { from: SCN-D3D-LAND-RETURNS, to: TEST-D3D-RESTORE }
+  - { from: SCN-D3D-PLATE-DROPS, to: TEST-D3D-PLATE-CONFINE }
+  - { from: SCN-D3D-CRESCENT, to: TEST-D3D-DILEMMA-V2 }
+  - { from: SCN-D3D-COMEBACK, to: TEST-D3D-RESTORE-LOSES }
+  - { from: SCN-DGE-SAVE-MATE, to: TEST-D3D-HITBOX }
+  - { from: SCN-D3D-LAST-LIFE-SEEN, to: TEST-D3D-LAYOUT }
+  - { from: SCN-D3D-CRESCENT, to: TEST-D3D-MENU-CEILING }
+
+  - { from: TEST-D3D-PLATE-CONFINE, to: EVD-SUITE }
+  - { from: TEST-D3D-RESTORE, to: EVD-SUITE }
+  - { from: TEST-D3D-RESTORE-LOSES, to: EVD-SUITE }
+  - { from: TEST-D3D-DILEMMA-V2, to: EVD-SUITE }
+  - { from: TEST-D3D-HITBOX, to: EVD-SUITE }
+  - { from: TEST-D3D-LAYOUT, to: EVD-SUITE }
+  - { from: TEST-D3D-MENU-CEILING, to: EVD-SUITE }
+  - { from: CON-007, to: EVD-BUILD }
