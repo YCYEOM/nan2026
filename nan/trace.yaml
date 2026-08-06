@@ -91,6 +91,12 @@ decisions:
   - DEC-D3D-MENU-SWAP       # DECISIONS 08-06 메뉴 7항목 천장 — 2D 와 병행 불가, 교체한다
   - DEC-D3D-SPLIT-TASKS     # DECISIONS 08-06 엔진(DGE-002) → 렌더(DGE-003). 규칙을 2D 에서 먼저 검증
   - DEC-D3D-REMEASURE       # DECISIONS 08-06 딜레마 표(60/130/220px)를 재측정한다 — 판이 원이 아니게 됐다
+  - DEC-D3D-GAUGE-MEASURED  # DECISIONS 08-06 RESTORE_BLOCKS 3 → 2. 명세가 정한 건 값이 아니라 절차였다
+  - DEC-D3D-CLAMP-LIMITS    # DECISIONS 08-06 복구가 붕괴를 못 이기는 이유는 값이 아니라 꼭대기 클램프다
+  - DEC-D3D-DILEMMA-LOST    # DECISIONS 08-06 ⚠ 조각 판이 딜레마를 죽였다 — 42/30/29 → 37/38/36
+  - DEC-D3D-FAILS-TEST      # DECISIONS 08-06 표본 30 → 120판, 딜레마 검사는 it.fails 로 남긴다
+  - DEC-D3D-HITBOX-FORCED   # DECISIONS 08-06 bodyScale() 이 몸통 폭 = 판정 지름을 강제한다
+  - DEC-D3D-CAMERA          # DECISIONS 08-06 카메라 기울기 38° · fl 560 — 판이 y 66~427
 
 requirements:
   - REQ-TURN-VISIBLE        # 다음 비트 담당을 항상 화면에서 알 수 있다 (리드인 포함)
@@ -249,6 +255,8 @@ tests:
   - TEST-D3D-HITBOX         # dodge3d.test 몸통 폭 = 투영된 판정 지름
   - TEST-D3D-LAYOUT         # dodge3d.test 2D 오버레이 스택 + 투영된 판 경계가 캔버스 안
   - TEST-D3D-MENU-CEILING   # menu.test 항목이 여전히 7개 — fits(8) === false (교체지 추가가 아니다)
+  - TEST-D3D-PROJECTION     # dodge3d.test 원근 3종 — 카메라 뒤는 없다 / 멀수록 작다 / 높이는 위로
+  - TEST-D3D-DILEMMA-FAILS  # dodge3d/dodge.test it.fails — 딜레마 회귀를 지우지 않고 빨갛게 남긴다
 
 evidence:
   - EVD-PLAYTEST-MASH       # evidence/playtest-2026-07-29-mash.md — 연타 난이도 합격(스테이지 4까지)
@@ -660,4 +668,19 @@ links:
   - { from: TEST-D3D-HITBOX, to: EVD-SUITE }
   - { from: TEST-D3D-LAYOUT, to: EVD-SUITE }
   - { from: TEST-D3D-MENU-CEILING, to: EVD-SUITE }
+  - { from: TEST-D3D-PROJECTION, to: EVD-SUITE }
+  - { from: TEST-D3D-DILEMMA-FAILS, to: EVD-SUITE }
+
+  # 구현에서 드러난 것들 (DGE-002·003 실행 중)
+  - { from: DEC-D3D-MEASURED-GAUGE, to: DEC-D3D-GAUGE-MEASURED }   # 절차가 값을 뒤집었다
+  - { from: DEC-D3D-GAUGE-MEASURED, to: DEC-D3D-CLAMP-LIMITS }
+  - { from: DEC-D3D-REMEASURE, to: DEC-D3D-DILEMMA-LOST }          # 재측정이 회귀를 찾아냈다
+  - { from: DEC-D3D-DILEMMA-LOST, to: DEC-D3D-FAILS-TEST }
+  - { from: DEC-DGE-METRIC-WRONG, to: DEC-D3D-FAILS-TEST }         # 같은 병의 두 번째 사례
+  - { from: DEC-D3D-HITBOX-FORCED, to: REQ-D3D-HITBOX-HONEST }
+  - { from: DEC-D3D-CAMERA, to: REQ-D3D-DEPTH-READS }
+  - { from: DEC-D3D-CLAMP-LIMITS, to: REQ-D3D-MUST-END }
+  - { from: DEC-D3D-FAILS-TEST, to: TEST-D3D-DILEMMA-FAILS }
+  - { from: DEC-D3D-CAMERA, to: TEST-D3D-PROJECTION }
+  - { from: DEC-D3D-DILEMMA-LOST, to: TEST-D3D-DILEMMA-FAILS }
   - { from: CON-007, to: EVD-BUILD }

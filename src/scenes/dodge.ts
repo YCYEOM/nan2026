@@ -7,7 +7,10 @@
 // 사이언은 원, 앰버는 네모, 주인 없는 탄은 가시 달린 마름모다.
 import { Harness, Scene, PointerState } from "../core/harness";
 import { Sfx } from "../systems/sfx";
-import { Dodge, K, ARENA, NEUTRAL, fateText, type Bullet, type Pt, type Event } from "../systems/dodge";
+import {
+  Dodge, K, ARENA, NEUTRAL, PLATES, PLATE_LV, MAX_R, fateText,
+  type Bullet, type Pt, type Event,
+} from "../systems/dodge";
 import { C, F, font, withAlpha, sigGradient, glow } from "../ui/tokens";
 
 const COLORS = C.player;
@@ -21,6 +24,7 @@ export const STATUS_Y = 466;   // 아래 안내·사연 줄 baseline (F.sm)
 /** 결산 오버레이 — 버틴 시간(hero) · 각자 성적(xl) 두 줄 · 사유(sm) · 안내(lg). */
 export const RECAP = { time: 150, rows: [206, 238] as const, why: 296, restart: 400 };
 const FLASH = 0.9;   // 사연 문구가 남는 시간(초)
+const PLATE_FLASH = 0.5;   // 조각이 무너지거나 솟은 표식이 남는 시간(초)
 
 export class DodgeScene implements Scene {
   private eng!: Dodge;
@@ -30,13 +34,15 @@ export class DodgeScene implements Scene {
   private shake = 0;
   /** 피격/요격 자리에 남는 짧은 표식. */
   private marks: { x: number; y: number; color: string; life: number; kind: "block" | "hit" }[] = [];
+  /** 조각별 표식 — 무너지면 붉게, 솟으면 밝게. 조각 번호로 찍는다. */
+  private flash: Record<number, { color: string; life: number }> = {};
 
   constructor(private h: Harness) { this.reset(); }
   enter() { this.reset(); }
 
   private reset() {
     this.eng = new Dodge();
-    this.note = null; this.shake = 0; this.marks = [];
+    this.note = null; this.shake = 0; this.marks = []; this.flash = {};
     this.h.score = 0;
     this.h.to("play");
     this.h.record("dge:reset", {});
@@ -72,6 +78,14 @@ export class DodgeScene implements Scene {
     const e = this.eng;
     e.update(dt, this.dirs());
     for (const ev of e.drainEvents()) this.onEvent(ev);
+    // 조각이 무너지면 붉게, 요격으로 솟으면 밝게. 규칙이 보이기만 하면 된다 — 연출은 3D 몫이다
+    for (const pe of e.drainPlateEvents()) {
+      this.flash[pe.i] = { color: pe.kind === "restore" ? C.success : C.danger, life: PLATE_FLASH };
+    }
+    for (const k of Object.keys(this.flash)) {
+      const f = this.flash[+k];
+      if ((f.life -= dt) <= 0) delete this.flash[+k];
+    }
     if (this.note) { this.note.life -= dt; if (this.note.life <= 0) this.note = null; }
     this.marks = this.marks.filter((m) => (m.life -= dt) > 0);
     this.shake = Math.max(0, this.shake - dt * 30);
@@ -113,9 +127,13 @@ export class DodgeScene implements Scene {
         ` &nbsp; ${life(0)} &nbsp; ${life(1)}` +
         ` &nbsp; <span style="opacity:.6">클릭/스페이스 다시 · Esc 메뉴</span>`;
     }
+    // 게이지가 안 보이면 복구가 우연처럼 보인다 — 규칙이 화면에 있어야 규칙이다
+    const pips = "▮".repeat(e.gauge) + "▯".repeat(Math.max(0, K.RESTORE_BLOCKS - e.gauge));
     return `<b>총알피하기</b> &nbsp; <b>${e.t.toFixed(1)}초</b>` +
       ` &nbsp; ${life(0)} &nbsp; ${life(1)}` +
+      ` &nbsp; <span style="opacity:.75">발판 ${e.intact}/${e.maxIntact} · 요격 <span style="color:${C.success}">${pips}</span></span>` +
       ` &nbsp; <span style="opacity:.6">내 색은 막고 · 남의 색은 피하고 · <span style="color:${C.danger}">붉은 탄</span>은 아무도 못 막는다</span>` +
+      ` &nbsp; <span style="opacity:.6">${K.RESTORE_BLOCKS}번 막으면 그 자리 발판이 돌아온다</span>` +
       ` &nbsp; <span style="opacity:.6">P1 WASD · P2 방향키 · R 처음부터 · 음소거[M] ${this.sfx.muted ? "🔇" : "🔊"}</span>`;
   }
 
@@ -136,17 +154,36 @@ export class DodgeScene implements Scene {
     }
   }
 
+  /** 조각 하나의 부채꼴 경로. 반지름이 조각마다 다르므로 원 하나로는 못 그린다. */
+  private sector(ctx: CanvasRenderingContext2D, i: number, r: number) {
+    const step = (Math.PI * 2) / PLATES;
+    ctx.beginPath();
+    ctx.moveTo(ARENA.x, ARENA.y);
+    ctx.arc(ARENA.x, ARENA.y, r, i * step, (i + 1) * step);
+    ctx.closePath();
+  }
+
   private arena(ctx: CanvasRenderingContext2D) {
     const e = this.eng;
-    ctx.fillStyle = C.surface;
-    ctx.beginPath(); ctx.arc(ARENA.x, ARENA.y, e.radius, 0, Math.PI * 2); ctx.fill();
     // 시작 크기를 옅게 남긴다 — 얼마나 좁아졌는지가 보여야 압박이 읽힌다
     ctx.strokeStyle = withAlpha(C.line, 0.5); ctx.lineWidth = 1;
     ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.arc(ARENA.x, ARENA.y, K.R0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ARENA.x, ARENA.y, MAX_R, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.strokeStyle = C.line; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(ARENA.x, ARENA.y, e.radius, 0, Math.PI * 2); ctx.stroke();
+    // 조각마다 반지름이 따로 논다. 이 톱니가 그 판의 기록이다.
+    for (let i = 0; i < PLATES; i++) {
+      const r = PLATE_LV[e.plates[i]];
+      this.sector(ctx, i, r);
+      ctx.fillStyle = i % 2 ? C.surface : C.surfaceAlt; ctx.fill();
+      ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.stroke();
+      // 방금 무너졌거나 솟은 조각 — 연출이 아니라 규칙이 보이게 하는 최소 표식이다
+      const f = this.flash[i];
+      if (f && f.life > 0) {
+        this.sector(ctx, i, r);
+        ctx.fillStyle = withAlpha(f.color, 0.3 * (f.life / PLATE_FLASH));
+        ctx.fill();
+      }
+    }
   }
 
   /** 예고선 — 총알 색으로. 없으면 요격이 불가능하다. */
@@ -260,7 +297,11 @@ export class DodgeScene implements Scene {
         ctx.fillText(`P${i + 1} — 막은 ${e.blocked[i]} · 못 막고 샌 ${e.leaked[i]}`, 320, RECAP.rows[i]);
       }
       ctx.font = font(F.sm); ctx.fillStyle = C.textMuted;
-      ctx.fillText(`P${f + 1} 이 먼저 쓰러졌다 · 아레나 ${Math.round(e.radius)}px 까지 좁아짐`, 320, RECAP.why);
+      // 모수를 같이 적는다(DESIGN.md 원칙 4). 되찾은 수가 협동의 성적표다
+      ctx.fillText(
+        `P${f + 1} 이 먼저 쓰러졌다 · 발판 ${e.intact}/${e.maxIntact} 남음 ` +
+        `(무너진 ${e.collapsed} · 되찾은 ${e.restored})`,
+        320, RECAP.why);
       ctx.font = font(F.lg); ctx.fillStyle = C.text;
       ctx.fillText("클릭 / 스페이스 → 다시 · Esc 메뉴", 320, RECAP.restart);
     }

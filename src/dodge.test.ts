@@ -1,7 +1,10 @@
 // 총알피하기 엔진. 이 게임의 전부는 색 하나라 테스트도 색에서 시작한다:
 // 조준 불변식 → 색 판정 3종 → 예고 → 난이도 곡선 → 집계 → 밸런스 분포.
 import { describe, it, expect } from "vitest";
-import { Dodge, K, ARENA, NEUTRAL, fateText, dist, type Bullet, type Pt } from "./systems/dodge";
+import {
+  Dodge, K, ARENA, NEUTRAL, TOP_LV, MAX_R, fateText, dist,
+  type Bullet, type Pt,
+} from "./systems/dodge";
 import { TURN_Y, STATUS_Y, RECAP } from "./scenes/dodge";
 import { textBand, checkStack } from "./kits/layout";
 import { F } from "./ui/tokens";
@@ -145,33 +148,129 @@ describe("난이도 곡선 — 전부 하한이 있다", () => {
     expect(g.burst).toBe(K.BURST_MAX);
   });
 
-  it("아레나가 좁아지되 하한에서 멈춘다", () => {
-    // 가만히 서 있으면 맞아 죽어서 축소가 멈춘다 — 곡선만 보려고 생명을 채워둔다
+  it("붕괴 주기가 짧아지되 하한에서 멈춘다", () => {
     const g = new Dodge({ seed: 1 });
-    expect(g.radius).toBe(K.R0);
-    for (let i = 0; i < 60 * 20; i++) { g.lives = [9, 9]; g.update(DT, still); }
-    expect(g.radius).toBeLessThan(K.R0);
-    for (let i = 0; i < 60 * 300; i++) { g.lives = [9, 9]; g.update(DT, still); }
-    expect(g.radius).toBe(K.R_MIN);
+    const first = g.collapseGap;
+    g.t = 30;
+    expect(g.collapseGap).toBeLessThan(first);
+    g.t = 100000;
+    expect(g.collapseGap).toBe(K.COLLAPSE_MIN);
+  });
+
+  it("조각이 무너지되 단계 0 밑으로는 안 간다", () => {
+    // 가만히 서 있으면 맞아 죽어서 붕괴가 멈춘다 — 곡선만 보려고 생명을 채워둔다
+    const g = new Dodge({ seed: 1 });
+    expect(g.intact).toBe(g.maxIntact);
+    for (let i = 0; i < 60 * 400; i++) { g.lives = [9, 9]; g.update(DT, still); }
+    expect(g.plates.every((v) => v >= 0 && v <= TOP_LV)).toBe(true);
+    expect(g.intact).toBeLessThan(g.maxIntact / 2);
+    expect(g.collapsed).toBeGreaterThan(0);
   });
 });
 
-describe("아레나 가둠", () => {
+describe("판 가둠 — 원 하나가 아니라 조각별 반지름이다", () => {
   it("밖으로 못 나간다", () => {
     const g = new Dodge({ seed: 1 });
     const out: Pt[] = [{ x: 1, y: 1 }, { x: -1, y: -1 }];
     for (let i = 0; i < 60 * 10; i++) g.update(DT, out);
-    for (const p of g.players) expect(dist(p, ARENA)).toBeLessThanOrEqual(g.radius - K.BODY + 1e-6);
+    for (const p of g.players) expect(dist(p, ARENA)).toBeLessThanOrEqual(g.radiusAt(p) - K.BODY + 1e-6);
   });
 
-  it("아레나가 줄면 사람이 안쪽으로 밀려 들어온다 — 밖에 남지 않는다", () => {
+  it("발밑 조각이 무너지면 안쪽으로 밀려 들어온다 — 밖에 남지 않는다", () => {
     const g = new Dodge({ seed: 1 });
     const out: Pt[] = [{ x: 1, y: 0 }, { x: -1, y: 0 }];
-    for (let i = 0; i < 60 * 5; i++) g.update(DT, out);      // 벽에 붙는다
-    const before = dist(g.players[0], ARENA);
-    for (let i = 0; i < 60 * 20; i++) g.update(DT, still);   // 가만히 있는 사이 판이 준다
-    expect(dist(g.players[0], ARENA)).toBeLessThan(before);
-    expect(dist(g.players[0], ARENA)).toBeLessThanOrEqual(g.radius - K.BODY + 1e-6);
+    // 판을 꽉 채운 채로 벽에 붙인다 — 무작위 붕괴가 실험을 오염시키지 않게
+    for (let i = 0; i < 60 * 3; i++) { g.plates.fill(TOP_LV); g.update(DT, out); }
+    const p = g.players[0];
+    const before = dist(p, ARENA);
+    g.plates[g.plateIndex(p)] = 0;                          // 그 방향만 하한으로
+    g.update(DT, still);
+    expect(dist(p, ARENA)).toBeLessThan(before);
+    expect(dist(p, ARENA)).toBeLessThanOrEqual(g.radiusAt(p) - K.BODY + 1e-6);
+  });
+
+  it("조각마다 반지름이 따로 논다 — 방향에 따라 판 끝이 다르다", () => {
+    const g = new Dodge({ seed: 1 });
+    g.plates.fill(TOP_LV);
+    const east = { x: ARENA.x + 10, y: ARENA.y };
+    const west = { x: ARENA.x - 10, y: ARENA.y };
+    expect(g.radiusAt(east)).toBe(g.radiusAt(west));
+    g.plates[g.plateIndex(east)] = 0;
+    expect(g.radiusAt(east)).toBeLessThan(g.radiusAt(west));
+  });
+});
+
+describe("복구 — 막으면 땅이 돌아온다", () => {
+  /** 요격 한 번을 확실히 만든다. 자기 색 탄을 그 사람 몸에 꽂는다. */
+  function block(g: Dodge, i: number) {
+    const p = g.players[i];
+    plant(g, { owner: i, at: { x: p.x - 60, y: p.y }, toward: p });
+    run(g, 0.6);
+  }
+  // 3회 × 0.6s = 1.8s 로 첫 붕괴(K.COLLAPSE 2.0s) 전에 끝난다 — 실험이 안 오염된다.
+
+  it("RESTORE_BLOCKS 번 막으면 **막은 그 자리** 조각이 한 단계 오른다", () => {
+    const g = new Dodge({ seed: 1 });
+    const i = g.plateIndex(g.players[0]);
+    g.plates[i] = 0;
+    for (let n = 0; n < K.RESTORE_BLOCKS; n++) block(g, 0);
+    expect(g.plates[i]).toBe(1);
+    expect(g.restored).toBe(1);
+    expect(g.gauge).toBe(0);
+  });
+
+  it("게이지가 덜 차면 아무것도 안 돌아온다", () => {
+    const g = new Dodge({ seed: 1 });
+    const i = g.plateIndex(g.players[0]);
+    g.plates[i] = 0;
+    block(g, 0);
+    expect(g.gauge).toBe(1);
+    expect(g.plates[i]).toBe(0);
+    expect(g.restored).toBe(0);
+  });
+
+  // 밸런스 값에 기대지 않는다 — RESTORE_BLOCKS 가 바뀌어도 의도만 검사한다(PSH-006 교훈).
+  it("공동 게이지다 — 나눠 막아도 차고, 마지막으로 막은 자리가 돌아온다", () => {
+    const g = new Dodge({ seed: 1 });
+    g.plates.fill(0);
+    const mine = g.plateIndex(g.players[0]);
+    const yours = g.plateIndex(g.players[1]);
+    expect(yours).not.toBe(mine);
+    for (let n = 0; n < K.RESTORE_BLOCKS - 1; n++) block(g, 0);   // P1 이 마지막 한 칸만 남기고
+    expect(g.restored).toBe(0);
+    block(g, 1);                                                  // 마지막 칸은 P2 가 채운다
+    expect(g.restored).toBe(1);
+    expect(g.plates[yours]).toBe(1);
+    expect(g.plates[mine]).toBe(0);   // P1 자리가 아니라 마지막으로 막은 자리다
+  });
+
+  it("이미 꼭대기인 조각에서 막으면 게이지만 비운다", () => {
+    const g = new Dodge({ seed: 1 });
+    const i = g.plateIndex(g.players[0]);
+    g.plates[i] = TOP_LV;
+    for (let n = 0; n < K.RESTORE_BLOCKS; n++) block(g, 0);
+    expect(g.gauge).toBe(0);
+    expect(g.plates[i]).toBe(TOP_LV);
+    expect(g.restored).toBe(0);
+  });
+
+  it("피격은 게이지를 안 올린다 — 보상은 요격에만 붙는다", () => {
+    const g = new Dodge({ seed: 1 });
+    const p = g.players[0];
+    plant(g, { owner: 1, at: { x: p.x - 60, y: p.y }, toward: p });
+    run(g, 0.6);
+    expect(g.lives[0]).toBe(K.LIVES - 1);
+    expect(g.gauge).toBe(0);
+  });
+
+  it("지형 사연은 색 사연과 따로 흐르고 씬이 읽으면 비워진다", () => {
+    const g = new Dodge({ seed: 1 });
+    const i = g.plateIndex(g.players[0]);
+    g.plates[i] = 0;
+    for (let n = 0; n < K.RESTORE_BLOCKS; n++) block(g, 0);
+    const pe = g.drainPlateEvents();
+    expect(pe.some((e) => e.kind === "restore" && e.i === i)).toBe(true);
+    expect(g.drainPlateEvents()).toHaveLength(0);
   });
 });
 
@@ -258,7 +357,7 @@ describe("밸런스 — 딜레마가 숫자로 재현된다", () => {
     const dx = me.x - mate.x, dy = me.y - mate.y, d = Math.hypot(dx, dy) || 1;
     const sign = d < keep ? 1 : -1;
     const cx = ARENA.x - me.x, cy = ARENA.y - me.y, cd = Math.hypot(cx, cy) || 1;
-    const pull = Math.max(0, (cd - (g.radius - 40)) / 60) * 2;
+    const pull = Math.max(0, (cd - (g.radiusAt(me) - 40)) / 60) * 2;
     return { x: (dx / d) * sign + (cx / cd) * pull, y: (dy / d) * sign + (cy / cd) * pull };
   }
 
@@ -269,15 +368,27 @@ describe("밸런스 — 딜레마가 숫자로 재현된다", () => {
     return g;
   }
 
+  /**
+   * **표본을 30 → 120 판으로 올렸다.** 조각 판을 넣고 30판으로 재니 딜레마 검사가
+   * 통과했는데, 120판으로 재니 거짓이었다 — 시드 1~30 이 우연히 맞았을 뿐이다.
+   * 이 저장소는 "통과하는데 성질은 없는" 검사로 이미 데었다(DEC-DGE-METRIC-WRONG).
+   */
+  const GAMES = 120;
+
   function stats(keep: number) {
-    const games = Array.from({ length: 30 }, (_, i) => play(i + 1, keep));
+    const games = Array.from({ length: GAMES }, (_, i) => play(i + 1, keep));
     const sum = (f: (g: Dodge) => number) => games.reduce((a, g) => a + f(g), 0);
     const deaths = sum((g) => K.LIVES * 2 - g.lives[0] - g.lives[1]);
+    const N = GAMES;
     const byColor = sum((g) => g.leaked[0] + g.leaked[1]);
     const times = games.map((g) => g.t).sort((a, b) => a - b);
     return {
       blocked: sum((g) => g.blocked[0] + g.blocked[1]),
       byColor, byNeutral: deaths - byColor, deaths,
+      collapsed: sum((g) => g.collapsed),
+      restored: sum((g) => g.restored),
+      deathsPerGame: deaths / N,
+      neutralShare: (deaths - byColor) / deaths,
       median: times[Math.floor(times.length / 2)],
     };
   }
@@ -303,18 +414,40 @@ describe("밸런스 — 딜레마가 숫자로 재현된다", () => {
    * 붙어 있으면 주인 없는 탄(중점 조준)이 물고, 떨어지면 요격을 못 해 색 탄이 샌다.
    * 이게 깨지면 한쪽 거리가 무료 정답이 되고 게임이 정적이 된다.
    */
-  it("붙어 있으면 주인 없는 탄이, 떨어지면 색 탄이 더 죽인다", () => {
-    const neutralShare = (s: ReturnType<typeof stats>) => s.byNeutral / s.deaths;
-    const colorShare = (s: ReturnType<typeof stats>) => s.byColor / s.deaths;
-    expect(neutralShare(near)).toBeGreaterThan(neutralShare(far));
-    expect(colorShare(far)).toBeGreaterThan(colorShare(near));
+  /**
+   * **이 검사는 지금 실패한다. 일부러 실패인 채로 둔다(`it.fails`).**
+   *
+   * CON-006 의 원형 판에서는 참이었다 — 120판 기준 주인 없는 탄 사망 비중이
+   * 붙어 있기 42% / 130px 30% / 떨어지기 29% 로 기울기가 뚜렷했다.
+   * **조각 판(DGE-002)을 넣자 37/38/36 으로 평평해졌다.**
+   *
+   * 원인을 분리해서 확인했다 — 복구를 끄고 붕괴를 원본 축소 속도(0.8s 고정)에
+   * 맞춰도 63/62/64 로 평평했다. 사망 수·요격 수·한 판 길이·실제 간격은 전부
+   * 원본과 같았고 **구성만 달랐다.** 즉 복구 규칙도 붕괴 속도도 아니고
+   * **톱니 판 자체**가 딜레마를 죽였다.
+   *
+   * 지우지 않는 이유: 이 성질이 CON-006 의 존재 이유이고(REQ-DGE-NO-FREE-SPACING),
+   * 설계로 되살려야 할 빚이다. `it.fails` 로 두면 **누가 고치는 순간 이 검사가
+   * 빨개져서** 되살아난 것을 알린다. 조용히 지우면 아무도 다시 안 본다.
+   *
+   * 30판으로는 통과했었다 — 시드 1~30 이 우연히 맞았다. 표본을 120 으로 올려서 드러났다.
+   */
+  it.fails("[알려진 회귀] 붙어 있으면 주인 없는 탄이, 떨어지면 색 탄이 더 죽인다", () => {
+    expect(near.neutralShare).toBeGreaterThan(far.neutralShare);
+    expect(far.byColor / far.deaths).toBeGreaterThan(near.byColor / near.deaths);
   });
 
+  /** 딜레마의 방향은 잃었지만 **대가의 크기는 여전히 같다** — 무료인 거리는 없다. */
   it("어느 거리도 공짜가 아니다 — 죽는 횟수는 비슷하다", () => {
     for (const s of [near, mid, far]) {
-      expect(s.deaths / 30).toBeGreaterThan(2);
-      expect(s.deaths / 30).toBeLessThan(6);
+      expect(s.deathsPerGame).toBeGreaterThan(2);
+      expect(s.deathsPerGame).toBeLessThan(6);
     }
+  });
+
+  /** 평평해진 것이 "주인 없는 탄이 논다"는 뜻은 아니다 — 세 거리 모두 3분의 1 넘게 문다. */
+  it("주인 없는 탄이 어느 거리에서도 3분의 1 넘게 죽인다", () => {
+    for (const s of [near, mid, far]) expect(s.neutralShare).toBeGreaterThan(0.3);
   });
 
   it("주인 없는 탄이 실제로 사람을 맞힌다 — 대형을 깨는 장치가 논다", () => {
@@ -325,6 +458,23 @@ describe("밸런스 — 딜레마가 숫자로 재현된다", () => {
     expect(mid.median).toBeGreaterThan(10);
     expect(mid.median).toBeLessThan(180);
   });
+
+  it("복구가 실제로 일어난다 — 요격에 양의 보상이 붙는다", () => {
+    expect(mid.restored).toBeGreaterThan(0);
+  });
+
+  /**
+   * **불변식: 복구는 지연이지 역전이 아니다.**
+   * 값이 아니라 관계를 검사한다 — 붕괴 주기나 `RESTORE_BLOCKS` 를 나중에 바꿔도
+   * "안 끝나는 게임"이 조용히 들어올 수 없다(PSH-006 패턴).
+   * 이게 깨지면 판이 안 줄고 후반 압박 셋 중 하나가 통째로 죽는다.
+   */
+  it("판당 복구 단계 수 < 판당 붕괴 단계 수", () => {
+    for (const s of [near, mid, far]) {
+      expect(s.restored).toBeLessThan(s.collapsed);
+      expect(s.restored / s.collapsed).toBeLessThan(0.6);
+    }
+  });
 });
 
 describe("정적 배치 — 겹치지 않는다", () => {
@@ -333,7 +483,7 @@ describe("정적 배치 — 겹치지 않는다", () => {
   it("경기 화면 세로 스택", () => {
     const bands = [
       { name: "상태 줄", ...textBand(TURN_Y, F.lg) },
-      { name: "아레나", top: ARENA.y - K.R0, bottom: ARENA.y + K.R0 },
+      { name: "아레나", top: ARENA.y - MAX_R, bottom: ARENA.y + MAX_R },
       { name: "아래 줄", ...textBand(STATUS_Y, F.sm) },
     ];
     expect(checkStack(bands, 480)).toEqual([]);
@@ -351,9 +501,9 @@ describe("정적 배치 — 겹치지 않는다", () => {
   });
 
   it("아레나가 캔버스 안에 든다 — 축소만 하므로 시작 크기만 보면 된다", () => {
-    expect(ARENA.y - K.R0).toBeGreaterThan(0);
-    expect(ARENA.y + K.R0).toBeLessThan(480);
-    expect(ARENA.x - K.R0).toBeGreaterThan(0);
-    expect(ARENA.x + K.R0).toBeLessThan(640);
+    expect(ARENA.y - MAX_R).toBeGreaterThan(0);
+    expect(ARENA.y + MAX_R).toBeLessThan(480);
+    expect(ARENA.x - MAX_R).toBeGreaterThan(0);
+    expect(ARENA.x + MAX_R).toBeLessThan(640);
   });
 });

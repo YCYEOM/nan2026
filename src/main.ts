@@ -8,7 +8,7 @@ import { MimicryScene } from "./scenes/mimicry";
 import { PushScene } from "./scenes/pushluck";
 import { ZeroScene } from "./scenes/zerosum";
 import { CornerScene } from "./scenes/corner";
-import { DodgeScene } from "./scenes/dodge";
+import { Dodge3DScene } from "./scenes/dodge3d";
 
 // 리듬 하위 메뉴. 모드가 늘면 여기 한 줄.
 const RHYTHM_MODES: GameEntry[] = [
@@ -32,7 +32,9 @@ const GAMES: GameEntry[] = [
   { name: "떠넘기기", desc: "주사위 · 2인 대결 · 터지기 전에 상대에게 밀어넣는다", make: (h) => new PushScene(h) },
   { name: "제로섬", desc: "영토 · 2인 대결 · 내가 얻은 칸은 반드시 네가 잃은 칸이다", make: (h) => new ZeroScene(h) },
   { name: "코너킥", desc: "축구 · 2인 협동 · 한 명은 올리고 한 명은 낙하점을 잡는다", make: (h) => new CornerScene(h) },
-  { name: "총알피하기", desc: "탄막 · 2인 협동 · 내 색 총알은 내가 몸으로 막는다", make: (h) => new DodgeScene(h) },
+  // 3D 로 교체했다(DGE-003). 메뉴 7항목이 천장이라 2D 와 병행할 수 없다(TASK-008) —
+  // `scenes/dodge.ts` 는 지우지 않고 남긴다. 3D 가 요격을 망가뜨리면 되돌릴 자리다.
+  { name: "총알피하기", desc: "탄막 · 2인 협동 · 막으면 발판이 돌아온다", make: (h) => new Dodge3DScene(h) },
 ];
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;

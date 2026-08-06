@@ -1,0 +1,119 @@
+{
+  "task_id": "DGE-002",
+  "summary_of_changes": "아레나 반지름 하나를 **조각 배열**로 바꾸고 **요격 복구**를 넣었다(CON-007). `src/systems/dodge.ts`: `K.R0`/`R_MIN`/`SHRINK` 와 `radius` 필드를 지우고 `PLATES` 14 · `PLATE_LV [110,137,163,190]` · `plates[]` · `plateIndex()` · `radiusAt()` · `intact` 로 대체. `confine` 이 그 사람 각도의 조각 반지름을 조회한다. `collapse()` 가 주기마다 무작위 조각을 한 단계 내리고, `earn()` 이 공동 게이지가 차면 **마지막으로 막은 자리**의 조각을 한 단계 올린다. `plateEvents`/`drainPlateEvents()` 신설. `src/scenes/dodge.ts` 최소 대응(부채꼴 14개 · 게이지 HUD · 결산 문구). `src/dodge.test.ts` 26 → 37개.",
+  "why": "요격의 보상이 '상대가 안 죽는다'는 손실 회피뿐이라 잘 막아도 화면에 남는 것이 없었다. 조각이 돌아오면 요격에 양의 보상이 생기고 협동이 공간이라는 자원으로 계량된다. 3D 렌더(DGE-003) 보다 먼저 한 이유는 규칙이 재미있는지가 렌더와 무관하고 2D 화면이 싸기 때문이다 — 복구가 재미없으면 3D 를 만들기 전에 알아야 한다.",
+  "files_changed": [
+    "src/systems/dodge.ts (조각 배열 · 붕괴 · 복구 · plateEvents)",
+    "src/scenes/dodge.ts (부채꼴 판 · 조각 표식 · 게이지 HUD · 결산 문구)",
+    "src/dodge.test.ts (26 → 37개, 밸런스 표본 30 → 120판)",
+    "docs/GAME_SPEC.md (리허설9-3D 절 — 실측표 · 알려진 회귀)",
+    "docs/DECISIONS.md (08-06 구현 결정 6행)",
+    "nan/trace.yaml (DEC-D3D 7종 · TEST 2종 추가)"
+  ],
+  "models_used": [
+    {
+      "role": "worker",
+      "alias": "auto",
+      "actual_model": "claude-opus-5[1m]",
+      "followed_recommendation": false
+    }
+  ],
+  "verification": {
+    "evaluations_run": [
+      {
+        "name": "npm test (249개 — dodge 37 · dodge3d 12 신규, 기존 무수정 통과)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "복구 규칙 6종 — 임계 · 공동 게이지 · 마지막 막은 자리 · 꼭대기 클램프 · 피격은 안 센다 · 사연 분리",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "각도별 가둠 3종 — 밖으로 못 나감 · 발밑 조각 무너지면 밀려 들어옴 · 방향마다 판 끝이 다름",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "불변식 — 판당 복구 단계 < 판당 붕괴 단계 (120판 × 간격 3종)",
+        "level": 2,
+        "status": "pass"
+      },
+      {
+        "name": "RESTORE_BLOCKS 유도 측정 (1·2·3·4 × 120판 × 간격 3종)",
+        "level": 3,
+        "status": "pass"
+      },
+      {
+        "name": "원본 엔진 대조 측정 (git HEAD 엔진 × 120판) — 딜레마 회귀 원인 분리",
+        "level": 3,
+        "status": "pass"
+      },
+      {
+        "name": "npm run build (tsc + vite)",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "bass design check / nan protect verify / nan trace validate",
+        "level": 1,
+        "status": "pass"
+      },
+      {
+        "name": "사람 플레이테스트",
+        "level": 3,
+        "status": "skipped"
+      }
+    ]
+  },
+  "critic_findings": {
+    "total": 0,
+    "open_high_or_medium": 0,
+    "note": "critic 패스 미실행. 0 은 '문제 없음'이 아니라 '안 돌림'이다."
+  },
+  "known_limitations": [
+    "⚠ **CON-006 의 딜레마가 죽었다.** 주인 없는 탄 사망 비중이 42/30/29 → 37/38/36 으로 평평해졌다. 원인은 복구 규칙도 붕괴 속도도 아니고 **톱니 판 자체**다 — 복구를 끄고 붕괴를 원본 축소 속도에 맞춰도 63/62/64 였다. 대가의 크기는 남았지만(어느 거리도 판당 4.0~4.1 사망) 어느 거리를 고르느냐가 죽는 방식을 바꾸는 성질을 잃었다. 검사를 `it.fails` 로 남겼다.",
+    "붕괴가 무너질 조각을 **무너지는 순간에** 고른다. 예고가 불가능한 구조라 화면이 흔들림 경고를 못 준다(DGE-004 후보).",
+    "`RESTORE_BLOCKS` 는 약한 노브다 — 3 → 1 로 시도를 3배 늘려도 실제 복구는 10.5 → 17.7 밖에 안 는다. 꼭대기 클램프가 실질 한계다.",
+    "한 판이 55s → 68s 로 길어졌다. 판이 원본보다 넓게 오래 유지된다.",
+    "`blocked` 는 여전히 애초에 빗나갈 총알까지 센다(DEC-DGE-METRIC-WRONG). 게이지의 입력이 이 값이다."
+  ],
+  "out_of_scope_findings": [
+    "밸런스 시뮬레이션 코드가 테스트 파일 안에 있어 재측정할 때마다 복사해야 했다. `kits/sim` 후보.",
+    "`policy()` 의 `keep` 이 실제 간격을 못 만든다 — 60/130/220 을 지시해도 실제로는 51/74/94px 다. 판이 좁아 물리적으로 불가능하다. **딜레마 측정의 손잡이 자체가 무딘 도구다.**"
+  ],
+  "docs_updated": {
+    "needed": true,
+    "updated": [
+      "docs/GAME_SPEC.md",
+      "docs/DECISIONS.md",
+      "nan/trace.yaml"
+    ],
+    "detail": [
+      "docs/GAME_SPEC.md — 리허설9-3D 절에 조각 발판 표 · 복구 규칙 · RESTORE_BLOCKS 실측표 · ⚠ 알려진 회귀 절 신설",
+      "docs/DECISIONS.md — 08-06 구현 결정 6행 (게이지 실측 · 클램프 발견 · 딜레마 회귀 · it.fails · bodyScale · 카메라)",
+      "nan/trace.yaml — DEC-D3D-GAUGE-MEASURED · CLAMP-LIMITS · DILEMMA-LOST · FAILS-TEST 등 7종 + 링크"
+    ]
+  },
+  "lessons": {
+    "recorded": true,
+    "candidates": [
+      "**명세가 값을 정하지 말고 절차를 정하면, 절차가 값을 뒤집는다.** 명세에 `RESTORE_BLOCKS` 3 을 시작값으로 적고 '측정에서 유도한다'를 조건으로 걸었다. 재보니 3 은 목표 구간 미달이었고 2 가 맞았다. 값을 명세에 못 박았다면 그대로 갔을 것이다.",
+      "**표본이 작으면 검사가 거짓을 통과시킨다.** 조각 판을 넣고 30판으로 재니 딜레마 검사가 통과했는데 120판에서는 거짓이었다. 시드 1~30 이 우연히 맞았을 뿐이다. '통과하는데 성질은 없는' 검사로 덴 두 번째다(DEC-DGE-METRIC-WRONG 이 첫 번째). **밸런스 검사는 표본 크기가 곧 신뢰도다.**",
+      "**깨진 성질은 지우지 말고 빨갛게 남긴다.** 딜레마 검사를 지우면 아무도 다시 안 본다. `it.fails` 로 두면 누가 설계로 고치는 순간 검사가 빨개져서 되살아난 것을 알린다.",
+      "**회귀를 발견하면 원인을 분리한다.** 딜레마가 죽었을 때 복구 규칙을 의심했지만, 복구를 끄고 붕괴 속도를 원본에 맞춘 대조군을 돌려보니 여전히 평평했다 — 범인은 톱니 판 자체였다. 대조군 없이 복구를 만졌으면 엉뚱한 것을 고쳤을 것이다."
+    ]
+  },
+  "rollback": {
+    "method": "`PLATE_LV`·`plates`·`gauge`·`plateEvents` 를 지우고 `K.R0`/`R_MIN`/`SHRINK` 와 `radius` 필드를 되살린다. `confine`/`spawn`/`escaped` 를 `this.radius` 로 환원. `scenes/dodge.ts` 의 `arena()` 를 원 하나로, 결산 문구를 `radius` 로. 딜레마 표를 옛 값으로, 표본을 30 으로.",
+    "tested": false
+  },
+  "design": {
+    "design_md_read": true,
+    "principles_followed": [
+      "결산에 모수를 같이 적는다(원칙 4) — 발판 N/42 · 무너진 N · 되찾은 N"
+    ],
+    "rendered_verification": false
+  }
+}
